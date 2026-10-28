@@ -51,6 +51,10 @@
         {% if ver_dashboard %}<button type="button" class="btn gris ds-prod-btn" id="dsCambioDigBtn" title="Registrar un cambio digital de una orden (doctor o laboratorio)">Cambios digitales</button>{% endif %}
         <div id="dsACargo" class="ds-acargo" hidden></div>
         <button type="button" class="btn gris ds-prod-btn ds-fuera" id="dsHistorialBtn" title="Ir a cualquier día de producción" aria-haspopup="dialog">Historial</button>
+        {# Antes en «Tools» de la barra superior (28-oct-2026): abren el mismo panel de siempre #}
+        <button type="button" class="btn gris ds-prod-btn" id="dsLatComments" data-lat-panel="comments" title="Comments: plantillas de comentarios">Comments</button>
+        <button type="button" class="btn gris ds-prod-btn" id="dsLatPreapproved" data-lat-panel="preapproved" title="Pre-Approved de los doctores">Pre-Approved</button>
+        <button type="button" class="btn gris ds-prod-btn" id="dsLatCanvas" data-lat-panel="canvas" title="Canvas: hojas de trabajo con fotos y anotaciones">Canvas</button>
         <button type="button" class="btn gris ds-prod-btn" id="dsConfigBtn" title="Configuración del Schedule: colores de los estados y avisos" aria-haspopup="dialog" aria-expanded="false">Configuración</button>
         <div id="dsLatDias" class="ds-lat-dias ds-fuera" role="group" aria-label="Días de la semana"></div>
       </div>

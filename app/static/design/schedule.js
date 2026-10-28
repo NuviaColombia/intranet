@@ -374,7 +374,10 @@ window.addEventListener('unhandledrejection', function(ev) {
       cambio: SVG + '<path d="M17 2l4 4-4 4"/><path d="M3 11V9a3 3 0 0 1 3-3h15"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a3 3 0 0 1-3 3H3"/></svg>', // intercambio
       hist: SVG + '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg>',                                   // calendario
       cfg: SVG + '<line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>',   // controles
-      cargo: SVG + '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M16 11l2 2 4-4"/></svg>'   // persona con visto
+      cargo: SVG + '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M16 11l2 2 4-4"/></svg>',   // persona con visto
+      comments: SVG + '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',                                 // globo de comentario
+      preapproved: SVG + '<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>',         // casilla con visto
+      canvas: SVG + '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>'   // imagen
     };
     var fijo = false, timer = null;
     function hayAcciones() {
@@ -385,7 +388,7 @@ window.addEventListener('unhandledrejection', function(ev) {
       var i = 0;
       panel.querySelectorAll('.ds-prod-btn, #dsACargo > .btn, #dsACargo > .ds-acargo-chip').forEach(function(el) {
         if (!el.querySelector('.ds-it-ico')) {
-          var txt = el.textContent.trim(), ico = el.id === 'dsProdBtn' ? 'prod' : el.id === 'dsCambioDigBtn' ? 'cambio' : el.id === 'dsHistorialBtn' ? 'hist' : el.id === 'dsConfigBtn' ? 'cfg' : 'cargo';
+          var txt = el.textContent.trim(), ico = el.dataset.latPanel || (el.id === 'dsProdBtn' ? 'prod' : el.id === 'dsCambioDigBtn' ? 'cambio' : el.id === 'dsHistorialBtn' ? 'hist' : el.id === 'dsConfigBtn' ? 'cfg' : 'cargo');
           el.classList.add('ds-it');
           if (!el.title) el.title = txt;
           el.innerHTML = '<span class="ds-it-ico">' + ICONOS[ico] + '</span><span class="ds-it-txt"></span>';
@@ -423,6 +426,8 @@ window.addEventListener('unhandledrejection', function(ev) {
     }
     try { new MutationObserver(revisar).observe(panel, {subtree: true, childList: true, attributes: true, attributeFilter: ['class', 'hidden']}); } catch (e) {}
     revisar();
+    // Comments, Pre-Approved y Canvas (antes en «Tools»): abren el mismo panel que el enlace ?panel= de siempre
+    panel.querySelectorAll('[data-lat-panel]').forEach(function(b) { b.addEventListener('click', function() { dsAbrirPanel(b.dataset.latPanel); }); });
   })();
   // ---------- Configuración del Schedule (Rosember, 26-oct-2026) ----------
   // Botón debajo de «Historial»: abre una ventana con los ajustes de personalización. Hoy: colores de los estados (antes el

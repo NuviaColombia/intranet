@@ -69,6 +69,15 @@ def _ve_development(user) -> bool:
 templates.env.globals["ve_development"] = _ve_development
 
 
+def _ve_office(user) -> bool:
+    """Nuvia Office en Management: por ahora solo Rosember (28-oct-2026)."""
+    from .routers.design_office import puede_office
+    return puede_office(user)
+
+
+templates.env.globals["ve_office"] = _ve_office
+
+
 def _ve_training(user) -> bool:
     """Menú Training (Plataforma y Pizarrón): de los admins, solo Rosember (27-oct-2026)."""
     from .services_design_training import puede_ver

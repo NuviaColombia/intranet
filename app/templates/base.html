@@ -175,29 +175,21 @@
   {% endif %}
   {% if es_design %}
   <a href="/design">Schedule</a>
-  <div class="nav-drop">
-    <button type="button" class="nav-drop-btn">Tools ▾</button>
-    <div class="nav-drop-menu">
-      <a href="/design?panel=comments">💬 Comments</a>
-      <a href="/design?panel=preapproved">✅ Pre-Approved</a>
-      <a href="/design?panel=canvas">🎨 Canvas</a>
-      {% if user.rol in ('aprobador', 'admin', 'superadmin') %}<a href="/design/office">📝 Nuvia Office</a>{% endif %}
-      {% if user.rol not in ('aprobador', 'admin', 'superadmin') %}<a href="/design/calendario">📅 Calendario</a>{% endif %}{# trabajadores: Gestión no les aparece #}
-    </div>
-  </div>
-  {% if user.rol in ('aprobador', 'admin', 'superadmin') %}
+  {# Sin «Tools» (Rosember, 28-oct-2026): Comments, Pre-Approved y Canvas están en la barra lateral del Schedule; Nuvia Office y
+     el Calendario, en Management. Los diseñadores ven Management solo con el Calendario. #}
+  {% set gestor = user.rol in ('aprobador', 'admin', 'superadmin') %}
   <div class="nav-drop">
     <button type="button" class="nav-drop-btn">Management ▾</button>
     <div class="nav-drop-menu">
-      <a href="/design?panel=dashboard">📊 Dashboard</a>
+      {% if gestor %}<a href="/design?panel=dashboard">📊 Dashboard</a>
       <a href="/design?panel=perf">📈 Desempeño</a>
-      <a href="/design?panel=seguimiento">👀 Seguimiento</a>
+      <a href="/design?panel=seguimiento">👀 Seguimiento</a>{% endif %}
       <a href="/design/calendario">📅 Calendario</a>
+      {% if gestor and ve_office(user) %}<a href="/design/office">📝 Nuvia Office</a>{% endif %}{# por ahora solo Rosember (routers/design_office.py) #}
       {% if user.rol in ('admin', 'superadmin') %}<a href="/design?panel=papelera">🗑️ Papelera</a>{% endif %}
       {% if user.rol in ('admin', 'superadmin') %}<a href="/design/avisos">📣 Centro de avisos</a>{% endif %}{# lo que envía el bot de Cliq (routers/design_avisos.py) #}
     </div>
   </div>
-  {% endif %}
   {% if user.rol in ('aprobador', 'admin', 'superadmin') %}{# aprobadores: solo Openings #}
   <a href="/design/parametros">Parameters</a>
   {% endif %}
