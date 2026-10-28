@@ -1350,6 +1350,10 @@ class OrdenIn(BaseModel):
     nHoraFin: str = ""
     nQc: bool = False
     nQcReporte: str = ""
+    # N6: estado de cada etapa (Zirconia design, Zirconia y Nightguard design; el de Bite design es `estado`)
+    zEstado: str = ""
+    xEstado: str = ""
+    nEstado: str = ""
     # N6: diseñador de cada etapa (Zirconia design, Zirconia y Nightguard design)
     zDesignerId: int | None = None
     xDesignerId: int | None = None
@@ -1374,6 +1378,7 @@ def _datos_desde_in(payload: OrdenIn) -> dict:
         "z_hora_inicio": payload.zHoraInicio, "z_s_hold": payload.zSHold, "z_f_hold": payload.zFHold,
         "z_hold_minutos": payload.zHoldMinutos, "z_hora_fin": payload.zHoraFin, "z_qc": payload.zQc,
         "z_qc_reporte": payload.zQcReporte, "art_start": payload.artStart, "art_rtd": payload.artRtd,
+        "z_estado": payload.zEstado, "x_estado": payload.xEstado, "n_estado": payload.nEstado,
         "z_designer_id": payload.zDesignerId, "x_designer_id": payload.xDesignerId, "n_designer_id": payload.nDesignerId,
         "x_hora_inicio": payload.xHoraInicio, "x_s_hold": payload.xSHold, "x_f_hold": payload.xFHold,
         "x_hold_minutos": payload.xHoldMinutos, "x_hora_fin": payload.xHoraFin, "x_qc": payload.xQc,
@@ -1400,6 +1405,7 @@ CAMPO_COLUMNA = {"orden": "orden", "paciente": "paciente", "centro": "centro", "
                  "nHoraInicio": "n_hora_inicio", "nSHold": "n_s_hold", "nFHold": "n_f_hold", "nHoldMinutos": "n_hold_minutos",
                  "nHoraFin": "n_hora_fin", "nQc": "n_qc", "nQcReporte": "n_qc_reporte",
                  "artStart": "art_start", "artRtd": "art_rtd",
+                 "zEstado": "z_estado", "xEstado": "x_estado", "nEstado": "n_estado",
                  "zDesignerId": "z_designer_id", "xDesignerId": "x_designer_id", "nDesignerId": "n_designer_id"}
 
 DIA_CERRADO = "Este día ya se cerró (5:00 am del día siguiente) y no se puede editar."
@@ -1436,6 +1442,9 @@ def api_crear_orden(payload: OrdenIn, user: Empleado = Depends(require_modulo("d
         raise HTTPException(403, DIA_CERRADO)
     if sd.es_hold(payload.estado) and not (payload.horaInicio or "").strip():
         raise HTTPException(400, sd.HOLD_SIN_INICIO)   # una orden nueva no puede empezar en Hold (Rosember, 21-oct-2026)
+    if any(sd.es_hold(getattr(payload, e)) and not (getattr(payload, h) or "").strip()
+           for e, h in (("zEstado", "zHoraInicio"), ("xEstado", "xHoraInicio"), ("nEstado", "nHoraInicio"))):
+        raise HTTPException(400, sd.HOLD_SIN_INICIO)   # lo mismo en cada etapa de N6
     _verificar_qc(user, db.get(DesignTeam, payload.teamId), payload, None)
     datos = _datos_desde_in(payload)
     t_face = db.get(DesignTeam, payload.teamId)
@@ -1447,7 +1456,9 @@ def api_crear_orden(payload: OrdenIn, user: Empleado = Depends(require_modulo("d
         datos["estado"] = oe
     if datos.get("estado"):   # N3: una cirugía creada en Pickup received ya marca el START de la articulación
         datos.update(sd.articulacion_por_estado(t_face.area.nombre, payload.tabla, datos, datos["estado"]))
-    if datos.get("estado") and sd.horas_por_estado(t_face.area.formato, _fecha(payload.fecha), payload.tabla):
+    if sd.n6_por_etapas(t_face.area.nombre, _fecha(payload.fecha), payload.tabla):   # N6: cada estado llena las horas de su etapa
+        datos.update(sd.horas_por_estado_etapas(datos, datos, {}))
+    elif datos.get("estado") and sd.horas_por_estado(t_face.area.formato, _fecha(payload.fecha), payload.tabla):
         datos.update(sd.horas_de_estado(payload.tabla, datos, datos["estado"]))
     if sd.orden_repetida(db, payload.teamId, _fecha(payload.fecha), datos["orden"]):
         raise HTTPException(400, _msg_repetida(datos["orden"]))
@@ -1922,7 +1933,13 @@ def api_actualizar_orden(orden_id: int, payload: OrdenIn,
         datos.update(sd.articulacion_por_estado(team.area.nombre, orden_existente.tabla,
                                                 {c: datos.get(c, getattr(orden_existente, c)) for c in ("art_start", "art_rtd")},
                                                 datos["estado"]))
-    if ("estado" in datos and sd.es_hold(datos["estado"]) and not sd.es_hold(orden_existente.estado)
+    sep = sd.n6_por_etapas(team.area.nombre, orden_existente.fecha, orden_existente.tabla)   # N6: un estado por etapa (28-oct-2026)
+    if sep:
+        for p, col in sd.ETAPAS_N6:   # Hold solo después de iniciar, en cada etapa
+            if (col in datos and sd.es_hold(datos[col]) and not sd.es_hold(getattr(orden_existente, col))
+                    and not (datos.get(p + "hora_inicio", getattr(orden_existente, p + "hora_inicio")) or "").strip()):
+                raise HTTPException(400, sd.HOLD_SIN_INICIO)
+    if (not sep and "estado" in datos and sd.es_hold(datos["estado"]) and not sd.es_hold(orden_existente.estado)
             and not sd.es_meeting(orden_existente.estado)   # de Meeting sí se pasa a Hold (N2, Rosember 27-oct-2026)
             and not sd.orden_iniciada({c: datos.get(c, getattr(orden_existente, c)) for c in ("etapa", "hora_inicio", "z_hora_inicio")},
                                       orden_existente.tabla, rd)):
@@ -1934,7 +1951,11 @@ def api_actualizar_orden(orden_id: int, payload: OrdenIn,
             ("", sd._normalizar_texto(sd.ESTADO_ORDER_ENTERED), sd._normalizar_texto(sd.ESTADO_READY), "pickup received")):
         datos["etapa"] = sd.ETAPA_DENTURE   # Bite design lo hace N3 / N6 (sus horas vienen de la original): Nestor inicia Denture design
     auto_horas: dict = {}   # horas que llenó el estado (el resto de cambios de hora son correcciones a mano)
-    if rd and "estado" in datos and datos["estado"] != (orden_existente.estado or ""):
+    if sep:   # N6: el estado de cada etapa llena las horas de esa etapa y la etapa ya no cambia sola
+        actual = {c: datos.get(c, getattr(orden_existente, c)) for c in sd.COLUMNAS_HORAS_ETAPAS}
+        auto_horas = sd.horas_por_estado_etapas(actual, datos, {col: getattr(orden_existente, col) for _, col in sd.ETAPAS_N6})
+        datos.update(auto_horas)
+    elif rd and "estado" in datos and datos["estado"] != (orden_existente.estado or ""):
         actual = {c: datos.get(c, getattr(orden_existente, c)) for c in ("hora_inicio", "s_hold", "f_hold", "hora_fin", "hold_minutos",
                                                                            "etapa", "z_hora_inicio", "z_s_hold", "z_f_hold",
                                                                            "z_hora_fin", "z_hold_minutos")}

@@ -1288,7 +1288,8 @@
   /* Material Change tiene 25 columnas: se desplaza a lo ancho dentro del panel y las listas largas conservan un ancho legible */
   table.ds-tabla-material th, table.ds-tabla-material td { padding:3px 3px; }
   table.ds-tabla-material select[data-campo="producto"] { min-width:190px; }
-  table.ds-tabla-material select[data-campo="estado"] { min-width:125px; }
+  table.ds-tabla-material select[data-campo="estado"], table.ds-tabla-material select[data-campo="zEstado"],
+  table.ds-tabla-material select[data-campo="xEstado"], table.ds-tabla-material select[data-campo="nEstado"] { min-width:125px; }
   table.ds-tabla-material select[data-campo="designerId"], table.ds-tabla-material select[data-campo="zDesignerId"],
   table.ds-tabla-material select[data-campo="xDesignerId"], table.ds-tabla-material select[data-campo="nDesignerId"] { min-width:120px; }
   table.ds-tabla-material select[data-campo="etapa"] { min-width:118px; }

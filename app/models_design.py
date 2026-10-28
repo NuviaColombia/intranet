@@ -152,6 +152,10 @@ class DesignOrden(Base):
     z_designer_id: Mapped[int | None] = mapped_column(ForeignKey("empleados.id"), nullable=True)
     x_designer_id: Mapped[int | None] = mapped_column(ForeignKey("empleados.id"), nullable=True)
     n_designer_id: Mapped[int | None] = mapped_column(ForeignKey("empleados.id"), nullable=True)
+    # Estado de cada etapa (Rosember, 28-oct-2026): el de Bite design es `estado`; las demás, estos. Cada uno llena las horas de su etapa.
+    z_estado: Mapped[str] = mapped_column(String(100), default="")
+    x_estado: Mapped[str] = mapped_column(String(100), default="")
+    n_estado: Mapped[str] = mapped_column(String(100), default="")
 
     # N3 · Cirugías (pedido por Rosember el 13-oct-2026): tiempo de articulación. Las dos horas se escriben a mano; el
     # total (RTD − START) se calcula en pantalla. Pasadas las 2 h se cuenta en el Dashboard › Articulación.

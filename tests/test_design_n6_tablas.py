@@ -34,6 +34,14 @@ class N6CuatroTablas(unittest.TestCase):
         o = O(tabla="dummy", designer_id=1, z_designer_id=5, x_designer_id=None, n_designer_id=None)
         self.assertEqual(sd.disenadores_de_orden(o), [1])   # Dummy y Cirugías tienen un solo Diseñador
 
+    def test_el_estado_de_cada_etapa_llena_sus_horas(self):
+        actual = {c: "" for c in sd.COLUMNAS_HORAS_ETAPAS}
+        r = sd.horas_por_estado_etapas(actual, {"n_estado": "Initiated"}, {"n_estado": ""})
+        self.assertEqual(list(r), ["n_hora_inicio"])   # solo la etapa de ese estado; Bite y las demás no se tocan
+        r = sd.horas_por_estado_etapas({**actual, "z_hora_inicio": "09:00"}, {"z_estado": "Dr authorization"}, {"z_estado": "Initiated"})
+        self.assertEqual(list(r), ["z_s_hold"])   # «Dr authorization» cuenta como Hold
+        self.assertEqual(sd.horas_por_estado_etapas(actual, {"estado": "Initiated"}, {"estado": "Initiated"}), {})   # sin cambio de estado
+
     def test_produccion_como_hoy(self):
         self.assertEqual(sd.tipo_produccion("tibar", ""), "mc")
         self.assertEqual(sd.tipo_produccion("dummy", ""), "sx")

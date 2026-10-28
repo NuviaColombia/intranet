@@ -348,7 +348,10 @@ def init_db():
                       ("n_qc_reporte", "TEXT DEFAULT ''"),
                       # N6: diseñador de cada etapa (28-oct-2026, autorizado por Rosember)
                       ("z_designer_id", "INTEGER REFERENCES empleados(id)"), ("x_designer_id", "INTEGER REFERENCES empleados(id)"),
-                      ("n_designer_id", "INTEGER REFERENCES empleados(id)")):
+                      ("n_designer_id", "INTEGER REFERENCES empleados(id)"),
+                      # N6: estado de cada etapa (28-oct-2026, autorizado por Rosember)
+                      ("z_estado", "VARCHAR(100) DEFAULT ''"), ("x_estado", "VARCHAR(100) DEFAULT ''"),
+                      ("n_estado", "VARCHAR(100) DEFAULT ''")):
         if col not in columnas_design_ordenes:
             with engine.begin() as conn:
                 conn.execute(text(f"ALTER TABLE design_ordenes ADD COLUMN {col} {tipo}"))

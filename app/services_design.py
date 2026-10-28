@@ -28,7 +28,7 @@ CAMPOS_ORDEN = [
     "z_hora_inicio", "z_s_hold", "z_f_hold", "z_hold_minutos", "z_hora_fin", "z_qc", "z_qc_reporte",
     "x_hora_inicio", "x_s_hold", "x_f_hold", "x_hold_minutos", "x_hora_fin", "x_qc", "x_qc_reporte",
     "n_hora_inicio", "n_s_hold", "n_f_hold", "n_hold_minutos", "n_hora_fin", "n_qc", "n_qc_reporte",
-    "z_designer_id", "x_designer_id", "n_designer_id",
+    "z_designer_id", "x_designer_id", "n_designer_id", "z_estado", "x_estado", "n_estado",
     "art_start", "art_rtd",
 ]
 
@@ -1023,6 +1023,31 @@ def filtro_disenadores(ids: list[int]):
     return or_(DesignOrden.designer_id.in_(ids), *[getattr(DesignOrden, c).in_(ids) for c in CAMPOS_DISENADOR_ETAPA])
 
 
+# Estado de cada etapa (Rosember, 28-oct-2026): desde el 29-oct-2026, en Material Change y Over Ti-bar cada etapa tiene su
+# estado y este llena las horas de SU etapa (Initiated → Inicio, Hold → Start hold, Approved → Fin). La etapa ya no cambia sola.
+# (prefijo de columnas, columna del estado): Bite design usa las columnas de siempre.
+ETAPAS_N6 = (("", "estado"), ("z_", "z_estado"), ("x_", "x_estado"), ("n_", "n_estado"))
+COLUMNAS_HORAS_ETAPAS = tuple(p + k for p, _ in ETAPAS_N6 for k in ("hora_inicio", "s_hold", "f_hold", "hora_fin", "hold_minutos"))
+ESTADOS_ARRASTRE_ETAPA = ["hold", "dr authorization", "changes", "ready to design"]
+
+
+def horas_por_estado_etapas(actual: dict, nuevos: dict, anteriores: dict) -> dict:
+    """Horas que llenan los estados que cambian, cada uno en su etapa. `actual` = valores ya combinados (claves de columna),
+    `nuevos` = lo que llega, `anteriores` = el estado de cada etapa antes de guardar. «Dr authorization» cuenta como Hold."""
+    cambios: dict = {}
+    for p, col in ETAPAS_N6:
+        if col in nuevos and (nuevos[col] or "") != (anteriores.get(col) or ""):
+            est = ESTADO_HOLD if _normalizar_texto(nuevos[col] or "") == _normalizar_texto(ESTADO_DR_AUT) else nuevos[col]
+            base = {k: actual.get(p + k) for k in ("hora_inicio", "s_hold", "f_hold", "hora_fin", "hold_minutos")}
+            cambios.update({p + k: v for k, v in face_horas_por_estado(base, est).items()})
+    return cambios
+
+
+def n6_por_etapas(area_nombre: str, fecha: date, tabla: str) -> bool:
+    """¿Esta orden es de N6, de Material Change u Over Ti-bar, en un día con las cuatro tablas?"""
+    return n6_separado(area_nombre, fecha) and es_tabla_etapas(tabla)
+
+
 def n6_separado(area_nombre: str, fecha: date) -> bool:
     return area_nombre == AREA_N6 and fecha >= N6_SEPARADO_DESDE
 
@@ -1609,6 +1634,12 @@ def trasladar_holds(db: Session, ahora: datetime | None = None) -> int:
                 .filter(func.lower(DesignOrden.estado) == ESTADO_READY.lower(),
                         DesignOrden.fecha >= TRASLADO_READY_DESDE, DesignOrden.fecha <= cerrado_hasta)
                 .order_by(DesignOrden.fecha, DesignOrden.orden_visual, DesignOrden.id).all())
+    # N6 desde el 29-oct-2026: si el estado de alguna etapa es de los que pasan al día siguiente, la orden también pasa
+    ordenes += (db.query(DesignOrden)
+                .filter(DesignOrden.tabla.in_([TABLA_MATERIAL, TABLA_TIBAR]),
+                        or_(*[func.lower(c).in_(ESTADOS_ARRASTRE_ETAPA) for c in (DesignOrden.z_estado, DesignOrden.x_estado, DesignOrden.n_estado)]),
+                        DesignOrden.fecha >= N6_SEPARADO_DESDE, DesignOrden.fecha <= cerrado_hasta)
+                .order_by(DesignOrden.fecha, DesignOrden.orden_visual, DesignOrden.id).all())
     ordenes += (db.query(DesignOrden)
                 .filter(DesignOrden.tabla == "nightguard", func.lower(DesignOrden.estado) == ESTADO_BITE_READY.lower(),
                         DesignOrden.fecha >= TRASLADO_BITE_NG_DESDE, DesignOrden.fecha <= cerrado_hasta)
@@ -1622,6 +1653,8 @@ def trasladar_holds(db: Session, ahora: datetime | None = None) -> int:
     # las copias de Removable Denture no se pasan solas: van el mismo día que su original (alinear_copias_rd, abajo)
     equipos_rd = {t.id for t in db.query(DesignTeam).join(DesignArea).filter(DesignArea.nombre == AREA_RD)}
     ordenes = [o for o in ordenes if o.team_id not in equipos_rd]
+    vistas: set = set()   # una orden puede cumplir dos filtros (su estado y el de una etapa): pasa una sola vez
+    ordenes = [o for o in ordenes if not (o.id in vistas or vistas.add(o.id))]
     ordenes.sort(key=lambda o: (o.fecha, o.orden_visual or 0, o.id))
     libres = festivos(db) if ordenes else set()
     equipos_n6 = {t.id for t in db.query(DesignTeam).join(DesignArea).filter(DesignArea.nombre == AREA_N6)} if ordenes else set()
@@ -1642,6 +1675,7 @@ def trasladar_holds(db: Session, ahora: datetime | None = None) -> int:
         if propios is not None and ((o.designer_id and o.designer_id not in propios) or (o.designer_prestado or "").strip()):
             o.designer_id = None
             o.designer_prestado = ""
+        fecha_ant = o.fecha
         destino = siguiente_dia_habil(o.fecha, libres)  # se saltan sábados, domingos y festivos de la empresa
         while destino <= cerrado_hasta:  # si nadie abrió el horario varios días, llega al primer día abierto
             destino = siguiente_dia_habil(destino, libres)
@@ -1652,6 +1686,8 @@ def trasladar_holds(db: Session, ahora: datetime | None = None) -> int:
         o.orden_visual = (max_visual or 0) + 1  # queda al final de las órdenes de ese día
         if o.team_id in equipos_n6 and destino >= N6_SEPARADO_DESDE:   # N6 con cuatro tablas (28-oct-2026)
             o.tabla = n6_tabla_de_producto(o.tabla, o.producto)
+            if fecha_ant < N6_SEPARADO_DESDE and es_tabla_etapas(o.tabla) and es_etapa_zirconia(o.etapa) and not o.z_estado:
+                o.z_estado = o.estado or ""   # venía en Zirconia design: su estado pasa a la columna de esa etapa
         db.flush()
     db.commit()
     alinear_copias_rd(db)
@@ -2196,6 +2232,7 @@ def serializar_orden(o: DesignOrden) -> dict:
         "designerId": o.designer_id, "designerNombre": o.designer.nombre_completo if o.designer else "", "arco": o.arco or "",
         "designerCorto": nombre_corto(o.designer),
         "designerPrestado": o.designer_prestado, "designerInhabilitado": _designer_inhabilitado(o),
+        "zEstado": o.z_estado or "", "xEstado": o.x_estado or "", "nEstado": o.n_estado or "",
         "zDesignerId": o.z_designer_id, "xDesignerId": o.x_designer_id, "nDesignerId": o.n_designer_id,
         "zDesignerCorto": nombre_corto(o.z_designer), "xDesignerCorto": nombre_corto(o.x_designer),
         "nDesignerCorto": nombre_corto(o.n_designer),

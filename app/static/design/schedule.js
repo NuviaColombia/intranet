@@ -693,13 +693,15 @@ window.addEventListener('unhandledrejection', function(ev) {
         {k:'xDesignerId', l:'Diseñador', t:'designerEtapa', g:'x'},
         {k:'xHoraInicio', l:'Inicio', t:'time', g:'x'}, {k:'xSHold', l:'S.Hold', t:'time', g:'x'},
         {k:'xFHold', l:'F.Hold', t:'time', g:'x', extra: [{k:'xTHold', l:'T. Hold'}]},
-        {k:'xHoraFin', l:'Fin', t:'time', g:'x'}, {k:'xQc', l:'QC', t:'checkbox', g:'x', extra: [{k:'xTotal', l:'Total'}]}
+        {k:'xHoraFin', l:'Fin', t:'time', g:'x'}, {k:'xQc', l:'QC', t:'checkbox', g:'x', extra: [{k:'xTotal', l:'Total'}]},
+        {k:'xEstado', l:'Estado', t:'catalogo', cat:'estado', g:'x'}
       ],
       n: [
         {k:'nDesignerId', l:'Diseñador', t:'designerEtapa', g:'n'},
         {k:'nHoraInicio', l:'Inicio', t:'time', g:'n'}, {k:'nSHold', l:'S.Hold', t:'time', g:'n'},
         {k:'nFHold', l:'F.Hold', t:'time', g:'n', extra: [{k:'nTHold', l:'T. Hold'}]},
-        {k:'nHoraFin', l:'Fin', t:'time', g:'n'}, {k:'nQc', l:'QC', t:'checkbox', g:'n', extra: [{k:'nTotal', l:'Total'}]}
+        {k:'nHoraFin', l:'Fin', t:'time', g:'n'}, {k:'nQc', l:'QC', t:'checkbox', g:'n', extra: [{k:'nTotal', l:'Total'}]},
+        {k:'nEstado', l:'Estado', t:'catalogo', cat:'estado', g:'n'}
       ]
     },
     // Removable Denture (Rosember, 20-oct-2026): la orden llega de N3 / N6 (Nestor como diseñador prestado); aquí se ve con
@@ -814,12 +816,15 @@ window.addEventListener('unhandledrejection', function(ev) {
     // Diseñador de cada etapa (Rosember, 28-oct-2026): el de siempre pasa a Bite design y Zirconia design tiene el suyo
     var base = [];
     COLSPEC.material.forEach(function(c) {
-      if (c.k === 'etapa' || c.k === 'designerId') return;
+      if (c.k === 'etapa' || c.k === 'designerId' || c.k === 'estado') return;
       if (c.k === 'horaInicio') base.push({k:'designerId', l:'Diseñador', t:'designer', g:'b'});
       if (c.k === 'zHoraInicio') base.push({k:'zDesignerId', l:'Diseñador', t:'designerEtapa', g:'z'});
       base.push(c);
+      // el Estado de cada etapa va al final de su grupo (Rosember, 28-oct-2026); el de Bite design es el de siempre
+      if (c.k === 'qc') base.push({k:'estado', l:'Estado', t:'catalogo', cat:'estado', g:'b'});
+      if (c.k === 'zQc') base.push({k:'zEstado', l:'Estado', t:'catalogo', cat:'estado', g:'z'});
     });
-    var i = base.findIndex(function(c) { return c.k === 'estado'; });
+    var i = base.findIndex(function(c) { return c.k === 'notas'; });
     return base.slice(0, i).concat(extra, base.slice(i));
   }
   function dsSpec(tabla, formato, areaNombre) {
@@ -1019,7 +1024,13 @@ window.addEventListener('unhandledrejection', function(ev) {
             : ['horaInicio', 'horaInicioDiseno', 'horaFin'];
     // [campo, ¿ya debería tener hora?]. Material Change: Bite al pasar a Zirconia; Zirconia al aprobar la orden.
     var esMat = tablaReal === 'material', biteHecha = esMat && dsEsZirconia(f), zHecha = biteHecha && aprobada;
-    var reqs = !esMat ? req.map(function(k) { return [k, aprobada]; })
+    var sepEt = esMat && !!tr.querySelector('[data-campo="nEstado"]');   // N6 con un estado por etapa (28-oct-2026)
+    var ETAPAS = [['estado', 'horaInicio', 'sHold', 'fHold', 'horaFin', 'qc', 'qcReporte'], ['zEstado', 'zHoraInicio', 'zSHold', 'zFHold', 'zHoraFin', 'zQc', 'zQcReporte'],
+                  ['xEstado', 'xHoraInicio', 'xSHold', 'xFHold', 'xHoraFin', 'xQc', 'xQcReporte'], ['nEstado', 'nHoraInicio', 'nSHold', 'nFHold', 'nHoraFin', 'nQc', 'nQcReporte']];
+    var reqs = sepEt ? ETAPAS.reduce(function(a, e) {   // cada etapa aprobada debe tener su Inicio y su Fin
+          return a.concat((f[e[2]] ? [e[1], e[3], e[4]] : [e[1], e[4]]).map(function(k) { return [k, f[e[0]] === 'Approved']; }));
+        }, [])
+      : !esMat ? req.map(function(k) { return [k, aprobada]; })
       : (f.sHold ? ['horaInicio', 'fHold', 'horaFin'] : ['horaInicio', 'horaFin']).map(function(k) { return [k, biteHecha]; })
           .concat((f.zSHold ? ['zHoraInicio', 'zFHold', 'zHoraFin'] : ['zHoraInicio', 'zHoraFin']).map(function(k) { return [k, zHecha]; }));
     reqs.forEach(function(par) {
@@ -1030,10 +1041,12 @@ window.addEventListener('unhandledrejection', function(ev) {
       if (miss) el.title = 'Falta esta hora y la orden ya está aprobada'; else el.removeAttribute('title');
     });
     // QC (Material Change: uno por etapa)
-    [['qc', 'qcReporte', esMat ? biteHecha : aprobada], ['zQc', 'zQcReporte', zHecha], ['xQc', 'xQcReporte', false], ['nQc', 'nQcReporte', false]].forEach(function(q) {
+    var qcs = sepEt ? ETAPAS.map(function(e) { return [e[5], e[6], f[e[0]] === 'Approved']; })
+      : [['qc', 'qcReporte', esMat ? biteHecha : aprobada], ['zQc', 'zQcReporte', zHecha], ['xQc', 'xQcReporte', false], ['nQc', 'nQcReporte', false]];
+    qcs.forEach(function(q) {
       var qc = tr.querySelector('[data-campo="' + q[0] + '"]'), td = qc && qc.closest('td');
       if (!td) return;
-      var pend = q[2] && !f[q[0]], etapaTxt = esMat ? (q[0] === 'zQc' ? 'Zirconia aprobada' : 'Bite aprobado') : 'Orden aprobada';
+      var pend = q[2] && !f[q[0]], etapaTxt = esMat ? ({zQc: 'Zirconia design aprobada', xQc: 'Zirconia aprobada', nQc: 'Nightguard design aprobada'}[q[0]] || 'Bite aprobado') : 'Orden aprobada';
       td.classList.toggle('ds-qc-pend', pend && !falta);
       td.classList.toggle('ds-qc-pend-rojo', pend && falta);
       if (pend) td.title = etapaTxt + (falta ? ': faltan horas y marcar el QC' : ': falta marcar el QC'); else td.removeAttribute('title');
@@ -2027,17 +2040,22 @@ window.addEventListener('unhandledrejection', function(ev) {
   var DS_ESTADOS_SOLO_NG = ['changes ready'];
   // Hold solo después de iniciar (Rosember, 21-oct-2026; el servidor también lo valida: orden_iniciada en services_design.py).
   // Material Change y Removable Denture miran la etapa en curso (Zirconia / Denture usan zHoraInicio).
-  function dsHoldPermitido(f) {
-    if (!f || dsEsHoldEstado(f.estado) || dsNorm(f.estado) === 'meeting') return true;   // de Meeting (N2) sí se pasa a Hold (27-oct-2026)
+  // N6 con un estado por etapa: el Inicio que cuenta es el de la etapa del estado
+  var DS_INICIO_ETAPA = {estado: 'horaInicio', zEstado: 'zHoraInicio', xEstado: 'xHoraInicio', nEstado: 'nHoraInicio'};
+  function dsHoldPermitido(f, campo, porEtapas) {
+    var e = f && f[campo || 'estado'];
+    if (!f || dsEsHoldEstado(e) || dsNorm(e) === 'meeting') return true;   // de Meeting (N2) sí se pasa a Hold (27-oct-2026)
+    if (porEtapas) return !!String(f[DS_INICIO_ETAPA[campo || 'estado']] || '').trim();
     return !!String((dsEsZirconia(f) ? f.zHoraInicio : f.horaInicio) || '').trim();
   }
   function dsEsHoldEstado(e) { return dsNorm(e) === 'hold'; }
   function dsAjustarOpcionHold(tr, f) {
-    var sel = tr && tr.querySelector('select[data-campo="estado"]');
-    if (!sel) return;
-    var ok = dsHoldPermitido(f);
-    [].forEach.call(sel.options, function(o) {
-      if (dsEsHoldEstado(o.value) && o.value !== sel.value) { o.hidden = !ok; o.disabled = !ok; o.title = ok ? '' : 'Primero inicia la orden (Initiated)'; }
+    var sels = tr ? tr.querySelectorAll('select[data-campo="estado"], select[data-campo="zEstado"], select[data-campo="xEstado"], select[data-campo="nEstado"]') : [], porEtapas = !!(tr && tr.querySelector('select[data-campo="nEstado"]'));
+    [].forEach.call(sels, function(sel) {
+      var ok = dsHoldPermitido(f, sel.dataset.campo, porEtapas);
+      [].forEach.call(sel.options, function(o) {
+        if (dsEsHoldEstado(o.value) && o.value !== sel.value) { o.hidden = !ok; o.disabled = !ok; o.title = ok ? '' : 'Primero inicia la orden (Initiated)'; }
+      });
     });
   }
   // N3 › Cirugías (Rosember, 21-oct-2026): de «Pickup received» solo se pasa a «Ready to design» (que marca el RTD de la
@@ -2110,27 +2128,26 @@ window.addEventListener('unhandledrejection', function(ev) {
         root.querySelectorAll('select[data-campo="' + c.k + '"]').forEach(function(sel) {
           var actual = sel.dataset.valorActual || '';
           valores.forEach(function(v) {
-            if (c.k === 'estado' && v !== actual && DS_ESTADOS_SOLO_NG.indexOf(String(v).trim().toLowerCase()) >= 0 && !dsFilaEsNG(sel, tabla)) return;
+            if (c.cat === 'estado' && v !== actual && DS_ESTADOS_SOLO_NG.indexOf(String(v).trim().toLowerCase()) >= 0 && !dsFilaEsNG(sel, tabla)) return;
             // «Changes» también en Cirugías/Dummy de N6 (Rosember, 19-oct-2026); «Dr authorization» sigue siendo solo de Material Change
             var changesN6 = dsNorm(v) === 'changes' && dsTablaBase(tabla) === 'principal' && dsAreaNombre() === DS_AREA_MATERIAL;
-            if (c.k === 'estado' && v !== actual && DS_ESTADOS_SOLO_MATERIAL.indexOf(dsNorm(v)) >= 0 && !dsFilaEsMaterial(sel, tabla) && !changesN6) return;
+            if (c.cat === 'estado' && v !== actual && DS_ESTADOS_SOLO_MATERIAL.indexOf(dsNorm(v)) >= 0 && !dsFilaEsMaterial(sel, tabla) && !changesN6) return;
             if (!sel.querySelector('option[value="' + CSS.escape(v) + '"]')) {
               var opt = document.createElement('option'); opt.value = v; opt.text = v; sel.appendChild(opt);
             }
           });
-          var conColor = c.k === 'centro' || c.k === 'estado' || (c.k === 'producto' && dsColoresProductos());
+          var conColor = c.k === 'centro' || c.cat === 'estado' || (c.k === 'producto' && dsColoresProductos());
           if (conColor) {   // «Colores…» siempre al final de la lista
             var oc = sel.querySelector('option[value="__colores"]');
             if (oc) oc.remove();
             sel.insertAdjacentHTML('beforeend', DS_OPCION_COLORES);
           }
           if (actual) sel.value = actual;
-          if (c.k === 'estado') {   // Hold solo después de iniciar
+          if (c.cat === 'estado') {   // Hold solo después de iniciar (también en cada etapa de N6)
             var trH = sel.closest('tr'), idH = trH ? parseInt(trH.dataset.id, 10) : NaN;
             var fH = isNaN(idH) ? null : (DS.diaData && (DS.diaData[tabla] || []).find(function(x) { return x.id === idH; }));
             dsAjustarOpcionHold(trH, fH || {estado: actual});
-            dsAjustarOpcionPickup(trH, fH || {estado: actual});
-            dsAjustarOpcionBite(trH, fH);
+            if (c.k === 'estado') { dsAjustarOpcionPickup(trH, fH || {estado: actual}); dsAjustarOpcionBite(trH, fH); }
           }
           if (conColor) dsPintarCelda(sel);
         });
@@ -2145,7 +2162,7 @@ window.addEventListener('unhandledrejection', function(ev) {
   // solo la primera vez (dsColoresSubirLocales); el navegador queda como respaldo si el servidor aún no tiene colores.
   var DS_OPCION_COLORES = '<option value="__colores">Colores…</option>';   // solo texto (Rosember, 20-oct-2026)
   // Qué casillas se pueden pintar: d = diseñador (por id), c = centro, p = producto (solo N2), e = estado (Rosember, 19-oct-2026)
-  var DS_COLOR_TIPO = {designerId: 'd', zDesignerId: 'd', xDesignerId: 'd', nDesignerId: 'd', centro: 'c', producto: 'p', estado: 'e'};
+  var DS_COLOR_TIPO = {designerId: 'd', zDesignerId: 'd', xDesignerId: 'd', nDesignerId: 'd', centro: 'c', producto: 'p', estado: 'e', zEstado: 'e', xEstado: 'e', nEstado: 'e'};
   // Diseñador de la orden (Bite design) y de las otras etapas de N6 (Zirconia design, Zirconia y Nightguard design)
   var DS_CAMPOS_DISENADOR = ['designerId', 'zDesignerId', 'xDesignerId', 'nDesignerId'];
   function dsDisenadoresDe(f) {
@@ -2227,7 +2244,7 @@ window.addEventListener('unhandledrejection', function(ev) {
   function dsPintarColores(scope) {
     var x = dsColoresLeer();
     dsPintarTarjetasTL();
-    (scope || document).querySelectorAll('select[data-campo="designerId"], select[data-campo="zDesignerId"], select[data-campo="xDesignerId"], select[data-campo="nDesignerId"], select[data-campo="centro"], select[data-campo="producto"], select[data-campo="estado"]').forEach(function(s) { dsPintarCelda(s, x); });
+    (scope || document).querySelectorAll('select[data-campo="designerId"], select[data-campo="zDesignerId"], select[data-campo="xDesignerId"], select[data-campo="nDesignerId"], select[data-campo="centro"], select[data-campo="producto"], select[data-campo="estado"], select[data-campo="zEstado"], select[data-campo="xEstado"], select[data-campo="nEstado"]').forEach(function(s) { dsPintarCelda(s, x); });
     if (dsEsRD()) (scope || document).querySelectorAll('#dsTablaMaterial span.ds-ro[data-ro="centro"]').forEach(function(sp) {
       var rgb = dsColorRgb((dsColoresDeFila(sp).c || {})[sp.textContent.trim()]), td = sp.closest('td');
       if (rgb) td.style.setProperty('background-color', 'rgba(' + rgb + ',.22)', 'important'); else td.style.removeProperty('background-color');
@@ -3788,7 +3805,7 @@ window.addEventListener('unhandledrejection', function(ev) {
                    'solicitadoPor', 'situacion', 'solucion', 'clasificacion', 'soporte', 'estado', 'qc', 'qcReporte', 'notas',
                    'zHoraInicio', 'zSHold', 'zFHold', 'zHoldMinutos', 'zHoraFin', 'zQc', 'zQcReporte', 'artStart', 'artRtd',
                    'xHoraInicio', 'xSHold', 'xFHold', 'xHoldMinutos', 'xHoraFin', 'xQc', 'xQcReporte',
-                   'nHoraInicio', 'nSHold', 'nFHold', 'nHoldMinutos', 'nHoraFin', 'nQc', 'nQcReporte', 'zDesignerId', 'xDesignerId', 'nDesignerId'];
+                   'nHoraInicio', 'nSHold', 'nFHold', 'nHoldMinutos', 'nHoraFin', 'nQc', 'nQcReporte', 'zDesignerId', 'xDesignerId', 'nDesignerId', 'zEstado', 'xEstado', 'nEstado'];
   function dsClon(o) { return JSON.parse(JSON.stringify(o)); }
   function dsMismaOrden(a, b) { return DS_CAMPOS.every(function(k) { return (a[k] == null ? '' : a[k]) === (b[k] == null ? '' : b[k]); }); }
   function dsSoloCampos(o) { var r = {}; DS_CAMPOS.forEach(function(k) { if (o[k] !== undefined) r[k] = o[k]; }); return r; }
