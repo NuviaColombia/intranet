@@ -1009,6 +1009,14 @@ window.addEventListener('unhandledrejection', function(ev) {
       'N6 - Full Mouth G-CAM Ti Bar Remake', 'N6 - Single G-CAM Ti Bar Remake'])
   };
   Object.keys(DS_PRODUCTOS_N6).forEach(function(k) { DS_PRODUCTOS_N6[k] = DS_PRODUCTOS_N6[k].map(dsNorm); });
+  // «Ver todas las etapas» es un suiche (Rosember, 29-oct-2026; antes un botón que cambiaba a «Encoger etapas»). Hay uno en
+  // Material Change y otro en Over Ti-bar: los dos van juntos y se recuerda en este navegador.
+  document.addEventListener('change', function(e) {
+    if (!e.target.classList || !e.target.classList.contains('ds-etapas-chk')) return;
+    DS.verTodasEtapas = e.target.checked;
+    try { localStorage.setItem('dsVerEtapas', DS.verTodasEtapas ? '1' : '0'); } catch (er) {}
+    dsPanelesN6(DS.diaData || {}); dsRenderTabla('material'); dsRenderTabla('tibar');
+  });
   function dsPanelesN6(dia) {
     var appN6 = document.getElementById('ds-app'); if (appN6) appN6.classList.toggle('ds-n6', dsAreaNombre() === DS_AREA_MATERIAL);
     var sep = dsN6Separado();
@@ -1016,7 +1024,7 @@ window.addEventListener('unhandledrejection', function(ev) {
       document.getElementById('dsPanel' + t).style.display = sep ? '' : 'none';
       if (!sep) document.getElementById('dsTabla' + t).innerHTML = '';
     });
-    document.querySelectorAll('.ds-btn-etapas').forEach(function(b) { b.style.display = sep ? '' : 'none'; b.textContent = DS.verTodasEtapas ? 'Encoger etapas' : 'Ver todas las etapas'; });
+    document.querySelectorAll('.ds-btn-etapas').forEach(function(b) { b.style.display = sep ? '' : 'none'; var c = b.querySelector('.ds-etapas-chk'); if (c) c.checked = !!DS.verTodasEtapas; });
     if (dsAreaNombre() !== DS_AREA_MATERIAL) return;
     document.getElementById('dsPanelNightguard').style.display = !sep || (dia.nightguard || []).length ? '' : 'none';
     document.getElementById('dsTituloPrincipal').innerText = sep ? 'Cirugías' : 'Cirugías/Dummy';
@@ -1791,8 +1799,8 @@ window.addEventListener('unhandledrejection', function(ev) {
   }
   function dsAplicarOcultas(tabla) {
     var btn = document.getElementById('dsOcultas_' + tabla);
-    var sw = btn && btn.parentNode.querySelector('.ds-auto-oc');
-    if (sw) { sw.style.display = DS.diaData ? '' : 'none'; sw.querySelector('input').checked = dsColoresFila(); }
+    var swc = btn && btn.parentNode.querySelector('.ds-auto-oc-chk'), sw = swc && swc.closest('.ds-auto-oc');   // el de colores, no el de etapas
+    if (sw) { sw.style.display = DS.diaData ? '' : 'none'; swc.checked = dsColoresFila(); }
     if (!window.DS_GESTION || !DS.diaData || !DS_CONT[tabla]) { if (btn) btn.style.display = 'none'; return; }
     var man = dsOcultasLeer(), n = 0, cambio = false;
     (DS.diaData[tabla] || []).forEach(function(f) {
@@ -2867,11 +2875,6 @@ window.addEventListener('unhandledrejection', function(ev) {
       DS.filtroEtapa[tablaF] = fe.dataset.filtroEtapa;
       try { localStorage.setItem('dsFiltroEtapa:' + tablaF, fe.dataset.filtroEtapa); } catch (er) {}
       dsRenderTabla(tablaF); return;
-    }
-    if (t.closest && t.closest('.ds-btn-etapas')) {
-      DS.verTodasEtapas = !DS.verTodasEtapas;
-      try { localStorage.setItem('dsVerEtapas', DS.verTodasEtapas ? '1' : '0'); } catch (er) {}
-      dsPanelesN6(DS.diaData || {}); dsRenderTabla('material'); dsRenderTabla('tibar'); return;
     }
     var fi = t.closest && t.closest('td.ds-ficha'), en = t.closest && t.closest('[data-encoger]');
     if ((!fi && !en) || t.closest('[data-notas]')) return;   // el botón de notas de la ficha abre sus notas
