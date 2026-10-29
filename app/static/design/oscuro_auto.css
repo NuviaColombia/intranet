@@ -57,7 +57,7 @@
 :root[data-ds-tema="oscuro"] .modulo-desc { color:var(--gris); }
 :root[data-ds-tema="oscuro"] .modulo.disabled:hover { box-shadow:0 1px 3px rgba(0,0,0,.08); }
 
-/* ---- static\design\schedule.css (800 reglas) ---- */
+/* ---- static\design\schedule.css (801 reglas) ---- */
 :root[data-ds-tema="oscuro"] .ds-overlay { background:#131925; }
 :root[data-ds-tema="oscuro"] .ds-overlay-close { background:#111827; color:#fff; border:none; box-shadow:0 3px 10px rgba(0,0,0,.3); }
 :root[data-ds-tema="oscuro"] .ds-overlay-close:hover { background:var(--ds-acento); color:var(--ds-acento-t); }
@@ -419,7 +419,8 @@
 :root[data-ds-tema="oscuro"] .cmt-tpl-item { border:1px solid #2e3544; background:#1a1e27; }
 :root[data-ds-tema="oscuro"] .cmt-section-tpl { background:#1a1e27; }
 :root[data-ds-tema="oscuro"] .cmt-section-tpl .cmt-tpl-item { background:#131925; border-color:#333843; }
-:root[data-ds-tema="oscuro"] #cmtPanelN3 .cmt-section, :root[data-ds-tema="oscuro"] #cmtPanelN3 .cmt-outbox { background:#1a1e27; }
+:root[data-ds-tema="oscuro"] #cmtPanelN3 .cmt-section, :root[data-ds-tema="oscuro"] #cmtPanelN3 .cmt-outbox, :root[data-ds-tema="oscuro"] #cmtCamposN3 { background:#1a1e27; }
+:root[data-ds-tema="oscuro"] #cmtCamposN3 { border:1px solid #333843; }
 :root[data-ds-tema="oscuro"] #cmtPanelN3 input, :root[data-ds-tema="oscuro"] #cmtPanelN3 select, :root[data-ds-tema="oscuro"] #cmtPanelN3 textarea { background:#131925; border-color:#333843; }
 :root[data-ds-tema="oscuro"] #cmtPanelN3 .cmt-field input.ro { background:#131925; color:#bbc1cc; }
 :root[data-ds-tema="oscuro"] #cmtPanelN3 .cmt-toggle-row { border-bottom-color:#333843; }
