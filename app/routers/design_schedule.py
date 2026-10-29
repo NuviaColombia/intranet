@@ -1824,6 +1824,15 @@ def diagnostico_orden(request: Request, orden: str = Query("", max_length=50), u
     return templates.TemplateResponse(request, "design_diag_orden.html", {"user": user, "es_design": True, "d": d})
 
 
+@router.get("/design/diagnostico/traslado-n6")
+def diagnostico_traslado_n6(orden: str = Query("", max_length=50), user: Empleado = Depends(require_admin),
+                            db: Session = Depends(get_db)):
+    """Admins, SOLO LECTURA (28-oct-2026): las órdenes de N6 del 28 que pasarían al 29 y cómo quedarían en el formato nuevo,
+    y el historial de una orden en todos los días (?orden=243200). No cambia nada."""
+    from .. import services_design_traslado_n6 as stn
+    return stn.revisar(db, orden)
+
+
 @router.get("/design/diagnostico/produccion")
 def diagnostico_produccion(request: Request, team_id: int | None = None, desde: str = "", hasta: str = "",
                            user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
