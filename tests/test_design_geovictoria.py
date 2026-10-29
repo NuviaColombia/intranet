@@ -388,9 +388,10 @@ class Avisos(unittest.TestCase):
             return {"Users": [usuario("1234567", [("e", "071800")])]}   # el libro trae el 22 (turno 07:00)
         g._post.side_effect = api
         r = g.historial_persona(self.db, self.ana.id, "2026-10", datetime(2026, 10, 22, 9, 0))
-        self.assertEqual([(d["fecha"], d["min"], d["dia"]) for d in r["dias"]], [("2026-10-20", 4, 1), ("2026-10-22", 18, 3)])
-        self.assertEqual((r["dias"][1]["turno"], r["dias"][1]["entrada"]), ("07:00", "07:18"))
-        self.assertEqual((r["veces"], r["minutos"], r["masDe15"], r["manager"], r["cerrado"]), (2, 22, 1, "Luis X", False))
+        # el 20 llegó 4 min tarde: no sale (solo más de 5 minutos); el 22, 18 min
+        self.assertEqual([(d["fecha"], d["min"], d["dia"]) for d in r["dias"]], [("2026-10-22", 18, 3)])
+        self.assertEqual((r["dias"][0]["turno"], r["dias"][0]["entrada"]), ("07:00", "07:18"))
+        self.assertEqual((r["veces"], r["minutos"], r["masDe15"], r["manager"], r["cerrado"]), (1, 18, 1, "Luis X", False))
         self.assertEqual([x["nombre"] for x in g.personas_reporte(self.db)], ["Ana X"])
         with self.assertRaises(ValueError):
             g.historial_persona(self.db, self.luis.id, "2026-10", datetime(2026, 10, 22, 9, 0))   # no cruza por cédula

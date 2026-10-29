@@ -712,6 +712,9 @@ def personas_reporte(db: Session) -> list[dict]:
                    if not _excluido_reporte(e.nombre_completo)), key=lambda x: x["nombre"].lower())
 
 
+HISTORIAL_MIN_ATRASO = 5   # el historial de una persona muestra solo los atrasos de más de 5 minutos
+
+
 def historial_persona(db: Session, empleado_id: int, mes: str, ahora: datetime) -> dict:
     """Historial de llegadas tarde de una persona en un mes ('2026-10'; el en curso, hasta hoy): cada día con atraso, con la
     hora de inicio del turno y la de entrada (Rosember, 28-oct-2026). Siempre consulta GeoVictoria (es una sola persona)."""
@@ -730,6 +733,8 @@ def historial_persona(db: Session, empleado_id: int, mes: str, ahora: datetime) 
     filas = r if isinstance(r, list) else (r or {}).get("Response") or []
     dias = [d for f in filas if _norm_id(f.get("Identifier")) == _norm_id(ident) for d in _dias_tarde(f)]
     dias.sort(key=lambda d: d["fecha"])
+    # Historial de una persona: solo las llegadas que superan HISTORIAL_MIN_ATRASO minutos (Rosember, 29-oct-2026)
+    dias = [d for d in dias if d["min"] > HISTORIAL_MIN_ATRASO]
     for d in dias:
         d["dia"] = date.fromisoformat(d["fecha"]).weekday()   # 0 = lunes
     if dias:   # hora del turno y de la entrada de cada día (del libro de asistencia); si no llega, salen solo los minutos
