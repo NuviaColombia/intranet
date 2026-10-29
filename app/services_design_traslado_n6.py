@@ -253,7 +253,7 @@ def deshacer(db: Session, marca: str = MARCA) -> dict:
 # hizo), así la producción del mes no cambia: antes contaba una vez (el diseñador de la orden) y así sigue.
 ESPERA_DESDE = date(2026, 10, 1)
 MARCA_ESPERA = "espera_n6_2026_10_29"
-ESPERA_EN_REVISION = True   # botón bloqueado mientras se valida el TC / Nightguard ya hecho (Rosember, 28-oct-2026)
+ESPERA_EN_REVISION = False  # True bloquea el botón (se usó mientras se validaba el TC / Nightguard ya hecho, 28-oct-2026)
 
 
 def candidatas_espera(db: Session) -> list:
