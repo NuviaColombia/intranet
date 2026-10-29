@@ -789,6 +789,10 @@
   #cmtPanelN3 .cmt-section, #cmtPanelN3 .cmt-outbox, #cmtCamposN3 { background:#f4f6fa; }
   /* Patient, Order #, Product, Arch size y Shape: mismo recuadro gris que las secciones de abajo (Rosember, 29-oct-2026) */
   #cmtCamposN3 { border:1px solid #e2e6ef; border-radius:10px; padding:8px 10px; }
+  /* Design details más compacto (Rosember, 29-oct-2026): campos más bajos, filas más juntas y el mismo ancho en las 3 columnas */
+  #cmtPanelN3 .cmt-design { gap:6px 8px; grid-template-columns:repeat(3, minmax(0, 1fr)); }
+  #cmtPanelN3 .cmt-design .cmt-field label { margin-bottom:1px; font-size:10.5px; line-height:1.2; }
+  #cmtPanelN3 .cmt-design .cmt-field input, #cmtPanelN3 .cmt-design .cmt-field select { height:30px; padding:3px 7px; font-size:12.5px; }
   #cmtPanelN3 input, #cmtPanelN3 select, #cmtPanelN3 textarea { background:#fff; border-color:#e2e6ef; }
   /* Cajas de texto de Comments N3: sin la esquina para estirar; crecen solas con el texto (el tamaño actual es el mínimo) */
   #cmtPanelN3 textarea { resize:none; overflow:hidden; }
