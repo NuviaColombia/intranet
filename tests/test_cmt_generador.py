@@ -5,6 +5,7 @@ las corre con node para cada caso de tests/cmt_casos.json y compara el texto exa
 
 Los textos esperados son los que daba el generador el 28-oct-2026 (aprobados por Rosember como el comportamiento actual),
 con 4 correcciones aprobadas ese mismo día: punto tras el tamaño sin PC, sin «PC PC», sin «(Digitally )» vacío y VDO con punto decimal.
+Después se agregó Shape al párrafo: «This arch is A10 (DDI-0012) with a Square shape.» (Rosember, 28-oct-2026).
 Si cambias el texto A PROPÓSITO, revisa el resultado y vuelve a generarlos:
     python tests/test_cmt_generador.py --regenerar
 """

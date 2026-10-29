@@ -21,7 +21,7 @@
    "j15": "6",
    "j19": "6"
   },
-  "readyToMill": "Ready to mill: Robin Rudloff 245508\nProduct: N3 - Full Mouth 24Z\nBar adapt: Ti-Bar\nSize: A5\nShape: Round\nVDO: -1\n\nThis arch is A5 (PC 12). We used VDO at -1 (Digitally -0.8). This bar was adapted to Ti-Bar. The bar implants and the articulation guide implants are in the same position, that means that both designs must be accurate in the digital bite, if you have problems please check the process.",
+  "readyToMill": "Ready to mill: Robin Rudloff 245508\nProduct: N3 - Full Mouth 24Z\nBar adapt: Ti-Bar\nSize: A5\nShape: Round\nVDO: -1\n\nThis arch is A5 (PC 12) with a Round shape. We used VDO at -1 (Digitally -0.8). This bar was adapted to Ti-Bar. The bar implants and the articulation guide implants are in the same position, that means that both designs must be accurate in the digital bite, if you have problems please check the process.",
   "everythingOk": "Robin Rudloff 245508 Everything is ok \n\nScans ✅ \nMeasurements ✅ \nCantilever ✅ \nAccess Hole ✅ \nIcam / Micron ✅"
  },
  {
@@ -38,7 +38,7 @@
    "l11": "45",
    "n11": "Square"
   },
-  "readyToMill": "Ready to mill: Mike Holmes 245569\nProduct: N3 - Full Mouth 24Z\nBar adapt: Ti-Bar\nSize: Custom B10\nShape: Square\nVDO: +1.5\n\nThis arch is Custom B10 (DDI-0045). We used VDO at +1.5 (Digitally +1.2). This bar was adapted to Ti-Bar. The bar implants and the articulation guide implants are in the same position, that means that both designs must be accurate in the digital bite, if you have problems please check the process.",
+  "readyToMill": "Ready to mill: Mike Holmes 245569\nProduct: N3 - Full Mouth 24Z\nBar adapt: Ti-Bar\nSize: Custom B10\nShape: Square\nVDO: +1.5\n\nThis arch is Custom B10 (DDI-0045) with a Square shape. We used VDO at +1.5 (Digitally +1.2). This bar was adapted to Ti-Bar. The bar implants and the articulation guide implants are in the same position, that means that both designs must be accurate in the digital bite, if you have problems please check the process.",
   "everythingOk": "Mike Holmes 245569 Everything is ok \n\nScans ✅ \nMeasurements ✅ \nCantilever ✅ \nAccess Hole ✅ \nIcam / Micron ✅"
  },
  {
@@ -66,7 +66,7 @@
    "h11": "0",
    "n11": "Natural"
   },
-  "readyToMill": "Ready to mill: Lorrie Marshal 245500\nProduct: N3 - Removable Denture\nSize: C5\nShape: Natural\n\nThis arch is C5. We used VDO at 0. ",
+  "readyToMill": "Ready to mill: Lorrie Marshal 245500\nProduct: N3 - Removable Denture\nSize: C5\nShape: Natural\n\nThis arch is C5 with a Natural shape. We used VDO at 0. ",
   "everythingOk": "Lorrie Marshal 245500 Everything is ok \n\nScans ✅ \nMeasurements ✅ \nCantilever ✅ \nAccess Hole ✅ \nIcam / Micron ✅"
  },
  {
@@ -261,7 +261,7 @@
    "h11": "-1",
    "j11": "-1"
   },
-  "readyToMill": "Ready to mill: Robin Rudloff 245508\nProduct: N3 - Full Mouth 24Z\nBar adapt: Ti-Bar\nSize: A5\nShape: Round\nVDO: -1\n\nThis arch is A5. We used VDO at -1 (Digitally -1). This bar was adapted to Ti-Bar. The bar implants and the articulation guide implants are in the same position, that means that both designs must be accurate in the digital bite, if you have problems please check the process.",
+  "readyToMill": "Ready to mill: Robin Rudloff 245508\nProduct: N3 - Full Mouth 24Z\nBar adapt: Ti-Bar\nSize: A5\nShape: Round\nVDO: -1\n\nThis arch is A5 with a Round shape. We used VDO at -1 (Digitally -1). This bar was adapted to Ti-Bar. The bar implants and the articulation guide implants are in the same position, that means that both designs must be accurate in the digital bite, if you have problems please check the process.",
   "everythingOk": "Robin Rudloff 245508 Everything is ok \n\nScans ✅ \nMeasurements ✅ \nCantilever ✅ \nAccess Hole ✅ \nIcam / Micron ✅"
  },
  {
@@ -280,7 +280,7 @@
    "j11": "-1",
    "l11": "pc12"
   },
-  "readyToMill": "Ready to mill: Robin Rudloff 245508\nProduct: N3 - Full Mouth 24Z\nBar adapt: Ti-Bar\nSize: A5\nShape: Round\nVDO: -1\n\nThis arch is A5 (PC 12). We used VDO at -1 (Digitally -1). This bar was adapted to Ti-Bar. The bar implants and the articulation guide implants are in the same position, that means that both designs must be accurate in the digital bite, if you have problems please check the process.",
+  "readyToMill": "Ready to mill: Robin Rudloff 245508\nProduct: N3 - Full Mouth 24Z\nBar adapt: Ti-Bar\nSize: A5\nShape: Round\nVDO: -1\n\nThis arch is A5 (PC 12) with a Round shape. We used VDO at -1 (Digitally -1). This bar was adapted to Ti-Bar. The bar implants and the articulation guide implants are in the same position, that means that both designs must be accurate in the digital bite, if you have problems please check the process.",
   "everythingOk": "Robin Rudloff 245508 Everything is ok \n\nScans ✅ \nMeasurements ✅ \nCantilever ✅ \nAccess Hole ✅ \nIcam / Micron ✅"
  },
  {
@@ -297,7 +297,7 @@
    "j19": "6",
    "h11": "-1"
   },
-  "readyToMill": "Ready to mill: Robin Rudloff 245508\nProduct: N3 - Full Mouth 24Z\nBar adapt: Ti-Bar\nSize: A5\nShape: Round\nVDO: -1\n\nThis arch is A5. We used VDO at -1. This bar was adapted to Ti-Bar. The bar implants and the articulation guide implants are in the same position, that means that both designs must be accurate in the digital bite, if you have problems please check the process.",
+  "readyToMill": "Ready to mill: Robin Rudloff 245508\nProduct: N3 - Full Mouth 24Z\nBar adapt: Ti-Bar\nSize: A5\nShape: Round\nVDO: -1\n\nThis arch is A5 with a Round shape. We used VDO at -1. This bar was adapted to Ti-Bar. The bar implants and the articulation guide implants are in the same position, that means that both designs must be accurate in the digital bite, if you have problems please check the process.",
   "everythingOk": "Robin Rudloff 245508 Everything is ok \n\nScans ✅ \nMeasurements ✅ \nCantilever ✅ \nAccess Hole ✅ \nIcam / Micron ✅"
  },
  {
@@ -315,7 +315,7 @@
    "h11": "+0,5",
    "j11": "-0,25"
   },
-  "readyToMill": "Ready to mill: Robin Rudloff 245508\nProduct: N3 - Full Mouth 24Z\nBar adapt: Ti-Bar\nSize: A5\nShape: Round\nVDO: +0.5\n\nThis arch is A5. We used VDO at +0.5 (Digitally -0.25). This bar was adapted to Ti-Bar. The bar implants and the articulation guide implants are in the same position, that means that both designs must be accurate in the digital bite, if you have problems please check the process.",
+  "readyToMill": "Ready to mill: Robin Rudloff 245508\nProduct: N3 - Full Mouth 24Z\nBar adapt: Ti-Bar\nSize: A5\nShape: Round\nVDO: +0.5\n\nThis arch is A5 with a Round shape. We used VDO at +0.5 (Digitally -0.25). This bar was adapted to Ti-Bar. The bar implants and the articulation guide implants are in the same position, that means that both designs must be accurate in the digital bite, if you have problems please check the process.",
   "everythingOk": "Robin Rudloff 245508 Everything is ok \n\nScans ✅ \nMeasurements ✅ \nCantilever ✅ \nAccess Hole ✅ \nIcam / Micron ✅"
  }
 ]

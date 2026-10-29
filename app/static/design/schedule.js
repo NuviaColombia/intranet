@@ -6333,14 +6333,17 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
       s += "Skipped implants: "+(cmtNe(f.b15)?"Upper: "+f.b15+" ":"")+(cmtNe(f.b19)?"Lower: "+f.b19:"")+CMT_NL;
     }
     if(cmtNe(f.b7)) s += CMT_NL;
-    if(cmtNe(f.d11)) s += "This arch is "+(cmtSi(f.f11)?"Custom ":"")+f.d11+(cmtNe(f.l11)?" ":". ");   // sin PC cierra con punto
+    if(cmtNe(f.d11)) s += "This arch is "+(cmtSi(f.f11)?"Custom ":"")+f.d11+(cmtNe(f.l11)?" ":"");
     if(cmtNe(f.l11)){
       if(cmtIsNum(f.l11)){
         var n=cmtNum(f.l11);
         var pre = n>999?"(InTech #":(n>99?"(DDI-0":(n>9?"(DDI-00":"(DDI-000"));
-        s += pre+cmtDisp(f.l11)+"). ";
-      } else { s += "(PC "+cmtDisp(f.l11).replace(/^PC\s*/i,"")+"). "; }   // si ya escribieron «PC 12» no sale «PC PC 12»
+        s += pre+cmtDisp(f.l11)+")";
+      } else { s += "(PC "+cmtDisp(f.l11).replace(/^PC\s*/i,"")+")"; }   // si ya escribieron «PC 12» no sale «PC PC 12»
     }
+    // «This arch is A10 (DDI-0012) with a Square shape.» (Rosember, 28-oct-2026)
+    if(cmtNe(f.d11) && cmtNe(f.n11)) s += " with a "+f.n11+" shape";
+    if(cmtNe(f.d11)||cmtNe(f.l11)) s += ". ";
     if(cmtNe(f.b7)){
       s += "We used VDO at "+cmtVdo(f.h11)+
            (cmtNz(f.h11)&&cmtNe(f.j11)?" (Digitally "+cmtVdo(f.j11)+")":"")+". ";
