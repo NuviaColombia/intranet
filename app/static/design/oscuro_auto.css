@@ -57,7 +57,7 @@
 :root[data-ds-tema="oscuro"] .modulo-desc { color:var(--gris); }
 :root[data-ds-tema="oscuro"] .modulo.disabled:hover { box-shadow:0 1px 3px rgba(0,0,0,.08); }
 
-/* ---- static\design\schedule.css (784 reglas) ---- */
+/* ---- static\design\schedule.css (795 reglas) ---- */
 :root[data-ds-tema="oscuro"] .ds-overlay { background:#131925; }
 :root[data-ds-tema="oscuro"] .ds-overlay-close { background:#111827; color:#fff; border:none; box-shadow:0 3px 10px rgba(0,0,0,.3); }
 :root[data-ds-tema="oscuro"] .ds-overlay-close:hover { background:var(--ds-acento); color:var(--ds-acento-t); }
@@ -325,6 +325,17 @@
 :root[data-ds-tema="oscuro"] .ds-btn-ojo:hover { color:var(--ds-acento); }
 :root[data-ds-tema="oscuro"] .ds-btn-x { background:#2c384e; color:#fff; border:none; }
 :root[data-ds-tema="oscuro"] .ds-btn-x:hover { background:#4b5563; }
+:root[data-ds-tema="oscuro"] .ds-etapas-filtro button { border:1px solid #394149; background:#131925; color:#bfcad9; }
+:root[data-ds-tema="oscuro"] .ds-etapas-filtro button.ds-g-b { background:#102039; color:#9fb3ea; border-color:#263758; }
+:root[data-ds-tema="oscuro"] .ds-etapas-filtro button.ds-g-z { background:#1c2f27; color:#b9eece; border-color:#355042; }
+:root[data-ds-tema="oscuro"] .ds-etapas-filtro button.ds-g-x { background:#433a15; color:#f4c1a5; border-color:#64562d; }
+:root[data-ds-tema="oscuro"] .ds-etapas-filtro button.ds-g-n { background:#331426; color:#eea2c0; border-color:#542b40; }
+:root[data-ds-tema="oscuro"] .ds-etapas-filtro button.on { background:#111827; color:#fff; border-color:#111827; }
+:root[data-ds-tema="oscuro"] h4.ds-etapa-tit.ds-g-b { background:#102039; color:#9fb3ea; }
+:root[data-ds-tema="oscuro"] h4.ds-etapa-tit.ds-g-z { background:#1c2f27; color:#b9eece; }
+:root[data-ds-tema="oscuro"] h4.ds-etapa-tit.ds-g-x { background:#433a15; color:#f4c1a5; }
+:root[data-ds-tema="oscuro"] h4.ds-etapa-tit.ds-g-n { background:#331426; color:#eea2c0; }
+:root[data-ds-tema="oscuro"] .ds-etapa-vacio { color:#aab2bf; }
 :root[data-ds-tema="oscuro"] table.ds-tabla td.ds-ficha { border-left:2px solid #424d63; }
 :root[data-ds-tema="oscuro"] .ds-ficha-d { color:#bbc0cb; }
 :root[data-ds-tema="oscuro"] .ds-etapa-encoger { border:1px solid currentColor; background:transparent; color:inherit; }

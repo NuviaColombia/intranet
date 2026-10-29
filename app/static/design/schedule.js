@@ -1148,6 +1148,39 @@ window.addEventListener('unhandledrejection', function(ev) {
     if (DS.verTodasEtapas) return [];
     return ['b', 'z', 'x', 'n'].filter(function(g) { return !DS.etapasAbiertas[(f.id || 'nuevo') + ':' + g] && dsEtapaColapsable(f, tabla, g); });
   }
+  // ---------- Órdenes agrupadas por etapa (N6, Rosember, 28-oct-2026) ----------
+  // Material Change y Over Ti-bar: un grupo por etapa en curso (Bite design → Zirconia design → Zirconia → Nightguard design), con
+  // su título y su número, y filtros arriba («Todas · Bite design (6)…», se recuerda en el navegador). Dentro de cada grupo,
+  // por estado: trabajando, Hold, Ready / Changes, aprobadas; si alguien ordenó por una columna, se respeta ese orden.
+  var DS_RANGO_ESTADO = {'initiated': 0, 'reinitiated': 0, 'hold': 1, 'ready to design': 2, 'changes': 2, 'dr authorization': 3, 'approved': 3,
+                         'skipped': 5, 'canceled': 5};
+  DS.filtroEtapa = {};
+  function dsHtmlPorEtapas(tabla, filas, bloque) {
+    var et = DS_ETAPAS_TABLA[tabla];
+    if (!et) return filas.map(bloque).join('');
+    var grupos = {};
+    et.forEach(function(p) { grupos[p || 'b'] = []; });
+    filas.forEach(function(f, i) { var g = dsEtapaActual(f, tabla) || 'b'; (grupos[g] = grupos[g] || []).push([f, i]); });
+    var rango = function(f, g) { var r = DS_RANGO_ESTADO[dsNorm(f[dsCampoEt(g === 'b' ? '' : g, 'estado')])]; return r === undefined ? 4 : r; };
+    if (!DS.sort[tabla]) Object.keys(grupos).forEach(function(g) { grupos[g].sort(function(a, b) { return (rango(a[0], g) - rango(b[0], g)) || (a[1] - b[1]); }); });
+    if (DS.filtroEtapa[tabla] === undefined) { try { DS.filtroEtapa[tabla] = localStorage.getItem('dsFiltroEtapa:' + tabla) || ''; } catch (e) { DS.filtroEtapa[tabla] = ''; } }
+    var filtro = grupos[DS.filtroEtapa[tabla]] ? DS.filtroEtapa[tabla] : '';
+    var html = '<div class="ds-etapas-filtro" role="group" aria-label="Ver por etapa">' +
+      '<button type="button" data-filtro-etapa="" aria-pressed="' + !filtro + '"' + (filtro ? '' : ' class="on"') + '>Todas (' + filas.length + ')</button>' +
+      et.map(function(p) {
+        var g = p || 'b';
+        return '<button type="button" data-filtro-etapa="' + g + '" aria-pressed="' + (filtro === g) + '" class="ds-g-' + g + (filtro === g ? ' on' : '') + '">' +
+               dsEsc(DS_GRUPOS[g]) + ' (' + grupos[g].length + ')</button>';
+      }).join('') + '</div>';
+    et.forEach(function(p) {
+      var g = p || 'b';
+      if ((filtro && filtro !== g) || !grupos[g].length) return;
+      html += '<h4 class="ds-etapa-tit ds-g-' + g + '">' + dsEsc(DS_GRUPOS[g]) + ' <span>(' + grupos[g].length + ')</span></h4>' +
+              grupos[g].map(function(x) { return bloque(x[0]); }).join('');
+    });
+    if (filtro && !grupos[filtro].length) html += '<p class="ds-etapa-vacio">No hay órdenes en ' + dsEsc(DS_GRUPOS[filtro]) + '.</p>';
+    return html;
+  }
   function dsFichaHtml(g, f) {
     var p = g === 'b' ? '' : g, e = f[dsCampoEt(p, 'estado')] || '';
     var dis = g === 'b' ? (f.designerCorto || f.designerPrestado || '') : (f[p + 'DesignerCorto'] || '');
@@ -2590,7 +2623,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     var html, nuevaFila = dsPuedeCrear() && !filas.some(dsFrenaFilaNueva);
     if (dsPorOrden(spec)) {   // N6: cada orden en su propia tablita, así cada una encoge sus etapas
       var bloque = function(f) { return '<table class="' + claseT + ' ds-bloque"><tbody>' + dsFilaConBandaHtml(spec, f, tabla, true) + '</tbody></table>'; };
-      html = filas.map(bloque).join('') + (nuevaFila ? bloque({}) : '');
+      html = dsHtmlPorEtapas(tabla, filas, bloque) + (nuevaFila ? bloque({}) : '');
     } else {
       html = '<table class="' + claseT + '"><thead>' + dsFilaGrupos(spec, 2) + dsEtiquetasHtml(spec, tabla, '', dsTablaBase(tabla) === 'material' ? 'Total general' : 'Total') + '</thead><tbody>';
       filas.forEach(function(f) { html += dsFilaConBandaHtml(spec, f, tabla); });
@@ -2604,6 +2637,7 @@ window.addEventListener('unhandledrejection', function(ev) {
       if (tr.closest('table.ds-bloque')) {   // qué etapas quedaron encogidas: si cambia al guardar, se redibuja
         var fE = (DS.diaData[tabla] || []).find(function(x) { return String(x.id) === tr.dataset.id; }) || {};
         tr._encogidas = dsEtapasColapsadas(fE, tabla).join(',');
+        tr._etapa = dsEtapaActual(fE, tabla);
       }
     });
     if (tabla === 'principal') dsSubirTablaPrincipal();
@@ -2763,7 +2797,14 @@ window.addEventListener('unhandledrejection', function(ev) {
   })();
 
   document.addEventListener('click', function(e) {   // fichas de etapas encogidas y «Ver todas las etapas»
-    var t = e.target;
+    var t = e.target, fe = t.closest && t.closest('[data-filtro-etapa]');
+    if (fe) {   // filtro por etapa
+      var contF = fe.closest('[id^="dsTabla"]'), tablaF = contF && DS_TABLAS.filter(function(x) { return DS_CONT[x] === contF.id; })[0];
+      if (!tablaF) return;
+      DS.filtroEtapa[tablaF] = fe.dataset.filtroEtapa;
+      try { localStorage.setItem('dsFiltroEtapa:' + tablaF, fe.dataset.filtroEtapa); } catch (er) {}
+      dsRenderTabla(tablaF); return;
+    }
     if (t.closest && t.closest('.ds-btn-etapas')) {
       DS.verTodasEtapas = !DS.verTodasEtapas;
       try { localStorage.setItem('dsVerEtapas', DS.verTodasEtapas ? '1' : '0'); } catch (er) {}
@@ -3131,8 +3172,9 @@ window.addEventListener('unhandledrejection', function(ev) {
   }
 
   function dsTrasGuardar(tabla, tr, o) {
-    if (tr.isConnected && tr.closest('table.ds-bloque') && tr._encogidas !== dsEtapasColapsadas(o, tabla).join(',')) {
-      dsRenderTabla(tabla); dsRenderKpis(DS.diaData); return;   // N6: una etapa se encogió o se abrió
+    if (tr.isConnected && tr.closest('table.ds-bloque') && tr._etapa !== undefined &&
+        (tr._encogidas !== dsEtapasColapsadas(o, tabla).join(',') || tr._etapa !== dsEtapaActual(o, tabla))) {
+      dsRenderTabla(tabla); dsRenderKpis(DS.diaData); return;   // N6: una etapa se encogió o se abrió, o la orden pasó a otra etapa
     }
     if (tr.isConnected && DS_ETAPAS_TABLA[tabla] && DS.diaData && DS.diaData.n6Separado &&
         !!tr.closest('#dsTablaEspera') !== !!dsEsperaInfo(o, tabla)) {   // N6: entró o salió de Órdenes en espera

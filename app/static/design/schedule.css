@@ -576,6 +576,21 @@
   .btn.ds-btn-etapas { padding:3px 10px; font-size:12px; line-height:1.4; border-radius:6px; margin:0; }
   /* N6: cada orden en su tablita; etapas encogidas como ficha (Rosember, 28-oct-2026) */
   table.ds-tabla.ds-bloque { margin-bottom:2px; }
+  /* N6: grupos por etapa y filtros (Rosember, 28-oct-2026) */
+  .ds-etapas-filtro { position:sticky; left:0; width:max-content; display:flex; flex-wrap:wrap; gap:6px; margin:0 0 6px; }
+  .ds-etapas-filtro button { border:1px solid #cbd5e1; background:#fff; color:#334155; border-radius:999px; padding:3px 12px; font-size:12px; font-weight:600; cursor:pointer; }
+  .ds-etapas-filtro button.ds-g-b { background:#e0ecff; color:#1e3a8a; border-color:#bfd4fb; }
+  .ds-etapas-filtro button.ds-g-z { background:#e6f6ef; color:#14532d; border-color:#bfe6d1; }
+  .ds-etapas-filtro button.ds-g-x { background:#fef3c7; color:#78350f; border-color:#f5dc8f; }
+  .ds-etapas-filtro button.ds-g-n { background:#fce7f3; color:#831843; border-color:#f5c2dc; }
+  .ds-etapas-filtro button.on { background:#111827; color:#fff; border-color:#111827; }
+  h4.ds-etapa-tit { position:sticky; left:0; width:max-content; margin:12px 0 4px; padding:3px 12px; border-radius:6px; font-size:13px; }
+  h4.ds-etapa-tit span { font-weight:500; opacity:.8; }
+  h4.ds-etapa-tit.ds-g-b { background:#e0ecff; color:#1e3a8a; }
+  h4.ds-etapa-tit.ds-g-z { background:#e6f6ef; color:#14532d; }
+  h4.ds-etapa-tit.ds-g-x { background:#fef3c7; color:#78350f; }
+  h4.ds-etapa-tit.ds-g-n { background:#fce7f3; color:#831843; }
+  .ds-etapa-vacio { margin:8px 0; color:#64748b; font-size:13px; }
   table.ds-tabla.ds-bloque.ds-bloque-oculto { display:none; }
   table.ds-tabla td.ds-ficha { vertical-align:middle; min-width:120px; max-width:180px; padding:6px 8px; cursor:pointer; border-left:2px solid #94a3b8; text-align:left; }
   table.ds-tabla td.ds-ficha:hover { filter:brightness(.96); }
