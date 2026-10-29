@@ -993,6 +993,7 @@ window.addEventListener('unhandledrejection', function(ev) {
       var esp = dsEsperaInfo(f, tabla);
       return !!esp && (p === esp.ap ? e === 'changes' : p === esp.sig ? e === 'ready to design' : false);
     }
+    if (dsNorm(f[sel.dataset.campo]) === 'hold' && e === 'initiated') return false;   // de Hold se sale con Reinitiated (para todos)
     if (!dsSoloPropias()) return true;   // managers y admins: todos, para corregir
     return (DS_FLUJO_N6[dsNorm(f[sel.dataset.campo])] || []).indexOf(e) >= 0;
   }

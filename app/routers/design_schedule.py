@@ -2019,6 +2019,11 @@ def api_actualizar_orden(orden_id: int, payload: OrdenIn,
     if (sep and datos.get("qc") and not orden_existente.qc
             and sd._normalizar_texto(datos.get("estado", orden_existente.estado) or "") == "approved"):
         datos["estado"] = sd.ESTADO_DR_AUT   # N6: al marcar el QC de Bite design, la etapa pasa sola a Dr authorization
+    if sep:   # de Hold se sale con Reinitiated, nunca con Initiated (también el manager; Rosember, 28-oct-2026)
+        for p, col in sd.ETAPAS_N6:
+            if (col in datos and sd._normalizar_texto(getattr(orden_existente, col) or "") == "hold"
+                    and sd._normalizar_texto(datos[col] or "") == "initiated"):
+                raise HTTPException(400, sd.MSG_HOLD_INITIATED_N6)
     if sep:
         for p, col in sd.ETAPAS_N6:   # Hold solo después de iniciar, en cada etapa
             if (col in datos and sd.es_hold(datos[col]) and not sd.es_hold(getattr(orden_existente, col))

@@ -1071,6 +1071,7 @@ ESTADO_REINITIATED = "Reinitiated"
 FLUJO_N6 = {"": {"ready to design", "initiated"}, "ready to design": {"initiated"}, "changes": {"initiated"},
             "initiated": {"hold", "approved"}, "hold": {"reinitiated"}, "reinitiated": {"hold", "approved"}}
 SIEMPRE_N6 = {"skipped", "canceled"}
+MSG_HOLD_INITIATED_N6 = "La etapa está en Hold: para continuar se marca Reinitiated, no Initiated."
 MSG_FLUJO_N6 = "Ese estado no sigue el flujo de la etapa: Ready to design → Initiated → Hold ⇄ Reinitiated → Approved."
 # Etapas de cada tabla, en orden (prefijo de columnas; Bite design usa las de siempre)
 ETAPAS_DE_TABLA = {TABLA_MATERIAL: ("", "z_", "n_"), TABLA_TIBAR: ("", "z_", "x_", "n_")}
