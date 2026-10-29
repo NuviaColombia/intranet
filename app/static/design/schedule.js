@@ -3707,6 +3707,8 @@ window.addEventListener('unhandledrejection', function(ev) {
     return /\btc\b/i.test(p) || DS_PRODUCTOS_TC.indexOf(p) >= 0 ? 'tc' : 'ng';
   }
   function dsProduccionDia(dia) {
+    // N2 (29-oct-2026): el servidor ya trae la producción del día de todo el equipo (la tabla solo trae los casos propios)
+    if (dia.produccionEquipo) return dia.produccionEquipo;
     var cuenta = {}, nombres = {}, orden = [], tipos = {};
     var tipoDe = function(k) { return tipos[k] || (tipos[k] = {sx: 0, tc: 0, ng: 0, mc: 0}); };
     (dia.designers || []).forEach(function(d) { var k = 'd' + d.id; cuenta[k] = 0; nombres[k] = d.corto || d.nombre; orden.push(k); tipoDe(k); });   // primer nombre y primer apellido

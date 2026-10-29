@@ -276,6 +276,10 @@ estado se guarda en `sessionStorage` (`ds_sim_oculto`): dura mientras esté abie
   equipo abierto, fuera de Support) lo ven aprobadores, admins y diseñadores; antes solo los gestores (`DS_GESTION`). Solo
   cambia quién ve el botón: el dato sale de lo que el Schedule ya carga (`dsPintarProduccion`). El panel de Seguimiento
   sigue solo para gestores.
+- **N2: producción del día de todo el equipo** (Rosember, 29-oct-2026): cada diseñador de un equipo de N2 ve en «Producción»
+  los números del día de su equipo (`produccion_dia_equipo`, viene en `api_dia` como `produccionEquipo`), y el mes de cada
+  persona (`produccion-mes`). La tabla del Schedule sigue mostrando solo sus casos y solo edita los suyos. Pruebas:
+  `tests/test_design_produccion_equipo.py`.
 - **Producción del día**: los casos hechos como prestado suman al diseñador
   (`prestados_por_disenador`). En N3 se separa en Sx (Cirugías), Tc y Ng (`tipo_produccion`); en N6 (21-oct-2026) en Mc (Material
   Change), D (Dummy, la tabla principal), Ng y Tc. En

@@ -1056,6 +1056,11 @@ def _verificar_equipo_ver(db: Session, user: Empleado, team_id: int) -> DesignTe
     return _verificar_equipo(db, user, team_id)
 
 
+def _miembro_n2(db: Session, user: Empleado, team: DesignTeam) -> bool:
+    """Diseñador de un equipo de N2: ve la producción del día de todo su equipo, sin los casos de los demás (29-oct-2026)."""
+    return team.area.nombre == sd.AREA_HTML and team.id in sd.equipos_como_designer(db, user)
+
+
 SOLO_MANAGER = "Solo el manager del equipo o un administrador puede crear o eliminar órdenes."
 
 
@@ -1121,6 +1126,8 @@ def api_dia(team_id: int, fecha: str, user: Empleado = Depends(require_modulo("d
     gest, es_tr = sd.gestiona_equipo(user, team), sd.es_training(team)
     miembro = team.id in sd.equipos_como_designer(db, user)
     dia = sd.datos_dia(db, team, _fecha(fecha), None if (gest or es_tr) else user.id)
+    if not (gest or es_tr) and _miembro_n2(db, user, team):   # N2: los números del día de todo el equipo; la tabla sigue siendo solo suya
+        dia["produccionEquipo"] = sd.produccion_dia_equipo(db, team, _fecha(fecha))
     dia["miId"] = user.id
     from ..invitados import es_invitado
     if es_invitado(user):   # invitado: todo se ve, nada se edita
@@ -1174,7 +1181,13 @@ def _huella_extra(db: Session, user: Empleado, team: DesignTeam, fecha: date):
     ayudas = tuple(a["id"] for a in say.ayudas_del_equipo(db, team.id, fecha))
     col = _colores_equipo(db, team.id)
     colores = col[1] if col else ""   # cambian los colores del equipo: las pantallas abiertas se repintan solas
-    return (permiso.isoformat() if permiso else "", ayudas, colores) if (permiso or ayudas or colores) else None
+    # N2: la producción del día de todo el equipo cambia con los casos de los demás, aunque su tabla no cambie
+    prod = ()
+    if _miembro_n2(db, user, team) and not (sd.gestiona_equipo(user, team) or sd.es_training(team)):
+        prod = tuple((x["id"], x["casos"], x["prestados"]) for x in sd.produccion_dia_equipo(db, team, fecha))
+    if not (permiso or ayudas or colores or prod):
+        return None
+    return (permiso.isoformat() if permiso else "", ayudas, colores, prod)
 
 
 def _colores_equipo(db: Session, team_id: int):
@@ -1225,7 +1238,7 @@ def api_produccion_mes(team_id: int, fecha: str, user: Empleado = Depends(requir
     """Lo que lleva cada persona en el mes antes de `fecha` (la ventana «Producción del día» le suma el día elegido)."""
     team = _verificar_equipo_ver(db, user, team_id)
     gest, es_tr = sd.gestiona_equipo(user, team), sd.es_training(team)
-    return sd.produccion_mes_compartida(db, team, _fecha(fecha), None if (gest or es_tr) else user.id)
+    return sd.produccion_mes_compartida(db, team, _fecha(fecha), None if (gest or es_tr or _miembro_n2(db, user, team)) else user.id)
 
 
 @router.get("/design/api/dia/version")

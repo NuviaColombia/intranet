@@ -2655,6 +2655,13 @@ def produccion_mes_previa(db: Session, team: DesignTeam, fecha: date, solo_emple
     con lo que ya tiene, así el acumulado se mueve en vivo sin volver a pedirlo."""
     if fecha.day == 1:
         return {}
+    return _produccion_entre(db, team, fecha.replace(day=1), fecha, solo_empleado_id)[0]
+
+
+def _produccion_entre(db: Session, team: DesignTeam, desde: date, hasta: date, solo_empleado_id: int | None = None) -> tuple[dict, dict]:
+    """Casos por persona y tipo entre `desde` (incluido) y `hasta` (excluido), con las reglas de «Producción»: cuentan las órdenes
+    del equipo y las que sus diseñadores hicieron prestadas en otros equipos (no Support). Devuelve ({id: {sx, tc, ng, mc}},
+    {id: casos prestados en otros equipos})."""
     ids = [i for (i,) in db.query(DesignTeamDesigner.empleado_id).filter(DesignTeamDesigner.team_id == team.id)]
     miembro: dict = {}
     for tid, eid in db.query(DesignTeamDesigner.team_id, DesignTeamDesigner.empleado_id).filter(DesignTeamDesigner.empleado_id.in_(ids or [-1])):
@@ -2662,12 +2669,13 @@ def produccion_mes_previa(db: Session, team: DesignTeam, fecha: date, solo_emple
     support = {i for (i,) in _equipos_support_ids(db).all()}
     q = (db.query(DesignOrden.designer_id, DesignOrden.z_designer_id, DesignOrden.x_designer_id, DesignOrden.n_designer_id,
                   DesignOrden.team_id, DesignOrden.estado, DesignOrden.tabla, DesignOrden.producto)
-         .filter(DesignOrden.fecha >= fecha.replace(day=1), DesignOrden.fecha < fecha,
+         .filter(DesignOrden.fecha >= desde, DesignOrden.fecha < hasta,
                  filtro_no_fantasma(), DesignOrden.tabla.in_(TABLAS_HORARIO),
                  or_(DesignOrden.team_id == team.id, filtro_disenadores(ids or [-1]))))
     if solo_empleado_id is not None:
         q = q.filter(filtro_disenador(solo_empleado_id))
     out: dict = {}
+    prestados: dict = {}
     for f in q:
         if _es_cancelada(f.estado):
             continue
@@ -2677,6 +2685,22 @@ def produccion_mes_previa(db: Session, team: DesignTeam, fecha: date, solo_emple
             if f.team_id != team.id and (eid not in ids or f.team_id in miembro.get(eid, set()) or f.team_id in support):
                 continue
             out.setdefault(eid, {"sx": 0, "tc": 0, "ng": 0, "mc": 0})[tipo_produccion(f.tabla, f.producto)] += 1
+            if f.team_id != team.id:
+                prestados[eid] = prestados.get(eid, 0) + 1
+    return out, prestados
+
+
+def produccion_dia_equipo(db: Session, team: DesignTeam, fecha: date) -> list[dict]:
+    """Producción del día de cada diseñador del equipo, con las mismas reglas de «Producción del día» del manager. Lo ven todos
+    los diseñadores de N2 de ese equipo (Rosember, 29-oct-2026): solo los números, no los casos de los demás.
+    Forma igual que dsProduccionDia en static/design/schedule.js: {id, nombre, casos, prestados, tipos}."""
+    cuenta, prestados = _produccion_entre(db, team, fecha, fecha + timedelta(days=1))
+    emps = {d.empleado_id: d.empleado for d in team.designers if d.empleado and getattr(d.empleado, "activo", 1)}
+    out = []
+    for eid in list(emps) + [i for i in cuenta if i not in emps]:
+        tipos = cuenta.get(eid) or {"sx": 0, "tc": 0, "ng": 0, "mc": 0}
+        e = emps.get(eid) or db.get(Empleado, eid)
+        out.append({"id": eid, "nombre": nombre_corto(e), "casos": sum(tipos.values()), "prestados": prestados.get(eid, 0), "tipos": tipos})
     return out
 
 
