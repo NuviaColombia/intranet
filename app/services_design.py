@@ -2441,6 +2441,7 @@ def serializar_orden(o: DesignOrden) -> dict:
         "nHoldMinutos": o.n_hold_minutos or 0, "nHoraFin": o.n_hora_fin or "", "nQc": bool(o.n_qc),
         "nQcReporte": o.n_qc_reporte or "",
         "ordenVisual": o.orden_visual,
+        "actualizadoEn": o.actualizado_en.isoformat() if o.actualizado_en else "",   # el Schedule descarta avisos más viejos
         "disenoMin": o.diseno_min,   # tiempo de diseño con hora real (si lo tiene); no se muestra, solo alimenta el Total
         # días que lleva desde que se creó (para el Total de un caso que pasó varias noches en Hold: dsMenosHold)
         "diasDesdeCreada": (o.fecha - o.fecha_creada).days if (o.fecha_creada and o.fecha) else 0,

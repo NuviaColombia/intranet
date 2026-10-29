@@ -27,8 +27,9 @@ window.dsFetchJSON = function(url, opts) {
   });
 };
 window.dsEnVuelo = 0;  // guardados en curso: mientras haya, el Schedule no se refresca en vivo
+window.dsGuardados = 0;  // cuántos guardados se han hecho: una recarga del día pedida antes de un guardado ya no sirve
 window.dsPostJSON = function(url, body) {
-  window.dsEnVuelo++;
+  window.dsEnVuelo++; window.dsGuardados++;
   var fin = function() { window.dsEnVuelo = Math.max(0, window.dsEnVuelo - 1); };
   var pr = window.dsFetchJSON(url, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body || {})});
   pr.then(fin, fin);
@@ -3891,7 +3892,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     if (document.hidden || !DS.teamId || !DS.diaData || document.querySelector('.ds-overlay.open')) return;
     var vistaEq = document.getElementById('dsVistaEquipo');
     if (!vistaEq || vistaEq.style.display === 'none') return;
-    var fecha = dsFechaISO(dsFechaSeleccionada()), clave = DS.teamId + ':' + fecha, url = DS.diaUrl;
+    var fecha = dsFechaISO(dsFechaSeleccionada()), clave = DS.teamId + ':' + fecha, url = DS.diaUrl, g0 = window.dsGuardados;
     api('/design/api/dia/version?team_id=' + DS.teamId + '&fecha=' + fecha).then(function(r) {
       if (!r || DS.diaUrl !== url) return;
       if (DS.diaVersion === null || DS.diaVersionClave !== clave) { DS.diaVersion = r.v; DS.diaVersionClave = clave; return; }
@@ -3899,6 +3900,8 @@ window.addEventListener('unhandledrejection', function(ev) {
       if (dsOcupado()) { dsVivoPend = true; return; }  // está escribiendo: se aplica apenas termine
       return api(url).then(function(dia) {
         if (DS.diaUrl !== url || dsOcupado()) return;
+        // 28-oct-2026: si mientras llegaba se guardó algo (p. ej. el QC), estos datos ya son viejos: se vuelven a pedir
+        if (window.dsGuardados !== g0) { dsVivoPend = true; return; }
         dia._fecha = fecha; dia._team = parseInt(clave);
         dsAplicarVivo(dia, r.v);
       });
@@ -3981,6 +3984,7 @@ window.addEventListener('unhandledrejection', function(ev) {
       (a.o || []).forEach(function(o) {
         var antes = null;
         tablas.forEach(function(t) { antes = antes || dia[t].find(function(f) { return f.id === o.id; }) || null; });
+        if (antes && antes.actualizadoEn && o.actualizadoEn && o.actualizadoEn < antes.actualizadoEn) return;   // aviso atrasado: ya se ve algo más nuevo
         o = dsConservarExtras(antes, o);
         quitar(o.id);
         if (tablas.indexOf(o.tabla) < 0 || (solo && dsDisenadoresDe(o).indexOf(yo) < 0)) return;
