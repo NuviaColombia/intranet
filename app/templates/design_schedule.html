@@ -285,7 +285,11 @@
     </div>
 
     <div class="cmt-col">
-      <div class="cmt-section cmt-section-tpl"><div class="cmt-tpl-h"><h4>Plantillas de notas</h4><button type="button" class="cmt-tpl-add" title="Agregar nota nueva" onclick="cmtNotaAbrir()">+</button></div><div id="cmtTplList"></div></div>
+      <div class="cmt-section cmt-section-tpl">
+        <div class="cmt-tpl-h"><h4>Plantillas de notas <span id="cmtTplN" class="cmt-tpl-n"></span></h4><button type="button" class="cmt-tpl-add" title="Agregar nota nueva" onclick="cmtNotaAbrir()">+</button></div>
+        <input type="search" id="cmtTplBuscar" class="cmt-tpl-buscar" placeholder="🔎 Buscar nota…" autocomplete="off" aria-label="Buscar nota por nombre o por texto">
+        <div class="cmt-tpl-scroll"><div id="cmtTplList"></div></div>
+      </div>
       <div class="cmt-section"><h4>Historial <span id="cmtHistCount" style="color:#64748b;font-weight:600"></span> (se borra a los 2 días)</h4><div id="cmtHistList"></div></div>
     </div>
   </div>

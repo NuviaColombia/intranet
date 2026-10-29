@@ -823,6 +823,19 @@
   .cmt-nota .cmt-nota-po { display:flex; align-items:center; gap:6px; font-size:12px; color:#374151; margin:0 0 6px; cursor:pointer; }
   .cmt-nota .cmt-nota-po input { width:auto; margin:0; }
   .cmt-tpl-item .cmt-tpl-text { color:#374151; white-space:pre-wrap; }
+  /* Plantillas compactas (Rosember, 29-oct-2026): una línea por nota, buscador y scroll propio para que el Historial se vea */
+  .cmt-tpl-n { color:#64748b; font-weight:600; text-transform:none; }
+  .cmt-tpl-buscar { width:100%; box-sizing:border-box; height:32px; padding:4px 10px; border:1px solid #e2e6ef; border-radius:8px; font-size:13px; margin:0 0 8px; background:#fff; }
+  .cmt-tpl-scroll { max-height:calc(100vh - 330px); min-height:200px; overflow-y:auto; padding-right:2px; }
+  .cmt-tpl-item { padding:5px 8px; margin-bottom:5px; }
+  .cmt-tpl-item .cmt-tpl-head { margin-bottom:0; }
+  .cmt-tpl-item.abierta .cmt-tpl-head { margin-bottom:6px; }
+  button.cmt-tpl-name { background:none; border:none; box-shadow:none; padding:0; margin:0; width:auto; height:auto; text-align:left; cursor:pointer; font:inherit;
+    font-weight:700; font-size:13px; color:inherit; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  button.cmt-tpl-name:hover { color:var(--ds-acento); }
+  .cmt-tpl-flecha { display:inline-block; color:#9ca3af; transition:transform .12s; }
+  .cmt-tpl-item.abierta .cmt-tpl-flecha { transform:rotate(90deg); }
+  .cmt-tpl-vacio { margin:6px 0; color:#64748b; font-size:13px; }
   .cmt-hist-item { display:flex; justify-content:space-between; align-items:center; padding:6px 8px; border:1px solid #eee; border-radius:6px; margin-bottom:6px; font-size:12px; }
   /* Comments N2 / Face Design: hojas FAQ */
   .faq-top { display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:12px; }

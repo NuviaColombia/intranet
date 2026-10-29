@@ -6661,6 +6661,11 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
   // Mientras carga (o si falla la carga) se muestran las 11 fijas escritas aquí.
   var CMT_TPL = CMT_TEMPLATES.map(function(t) { return {id: null, n: t.n, t: t.t, fija: true}; });
   var CMT_FAVS = {};
+  // Plantillas compactas (Rosember, 29-oct-2026): buscador y texto desplegable. Solo cambia cómo se ve la lista.
+  var CMT_TPL_Q = '';           // lo escrito en el buscador
+  var CMT_TPL_ABIERTAS = {};    // notas con el texto desplegado (se conserva al volver a pintar la lista)
+  function cmtTplClave(tpl) { return tpl.id != null ? 'i' + tpl.id : 'f' + CMT_TPL.indexOf(tpl); }
+  function cmtSinTildes(v) { return String(v == null ? '' : v).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
   function cmtCargarPlantillas() {
     Promise.all([api('/design/api/comentarios/templates'), api('/design/api/favoritos/activos')]).then(function(r) {
       if (!Array.isArray(r[0])) return;
@@ -6678,20 +6683,29 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
     var edit = tpl.id == null ? '' :
       '<button type="button" class="cmt-tpl-ico" title="Editar nota" onclick="cmtNotaAbrir(' + tpl.id + ')">✎</button>' +
       (tpl.fija ? '' : '<button type="button" class="cmt-tpl-ico" title="Eliminar nota (va a la Papelera)" onclick="cmtNotaEliminar(' + tpl.id + ')">🗑</button>');
-    return '<div class="cmt-tpl-item"><div class="cmt-tpl-head">' + star + '<span class="cmt-tpl-name">' + cmtEscHtml(tpl.n) + '</span>' +
+    var clave = cmtTplClave(tpl), abierta = !!CMT_TPL_ABIERTAS[clave], texto = cmtTplText(tpl, f);
+    return '<div class="cmt-tpl-item' + (abierta ? ' abierta' : '') + '"><div class="cmt-tpl-head">' + star +
+           '<button type="button" class="cmt-tpl-name" aria-expanded="' + abierta + '" title="' + cmtEscHtml(texto.slice(0, 300)).replace(/"/g, '&quot;') +
+           '" onclick="cmtTplAbrir(\'' + clave + '\')"><span class="cmt-tpl-flecha" aria-hidden="true">▸</span> ' + cmtEscHtml(tpl.n) + '</button>' +
            '<span class="cmt-tpl-acc">' + edit + '<button type="button" class="btn mini" onclick="cmtCopiarPlantilla(' + CMT_TPL.indexOf(tpl) + ', this)">Copiar</button></span></div>' +
-           '<div class="cmt-tpl-text">' + cmtEscHtml(cmtTplText(tpl, f)) + '</div></div>';
+           (abierta ? '<div class="cmt-tpl-text">' + cmtEscHtml(texto) + '</div>' : '') + '</div>';
   }
+  window.cmtTplAbrir = function(clave) { CMT_TPL_ABIERTAS[clave] = !CMT_TPL_ABIERTAS[clave]; cmtRenderPlantillas(); };
   var cmtPoPintado = null;
   function cmtRenderPlantillas() {
     var f = cmtLeer();
     cmtPoPintado = (f.b4 || '') + '\u0001' + (f.j4 || '');
-    var favs = CMT_TPL.filter(function(t) { return t.id != null && CMT_FAVS[t.id]; });
-    var resto = CMT_TPL.filter(function(t) { return favs.indexOf(t) < 0; });
+    var q = cmtSinTildes(CMT_TPL_Q).trim();
+    var lista = CMT_TPL.filter(function(t) { return !q || cmtSinTildes(t.n).indexOf(q) >= 0 || cmtSinTildes(t.t).indexOf(q) >= 0; });
+    var favs = lista.filter(function(t) { return t.id != null && CMT_FAVS[t.id]; });
+    var resto = lista.filter(function(t) { return favs.indexOf(t) < 0; });
     var html = favs.map(function(t) { return cmtTplHtml(t, f); }).join('');
     if (favs.length && resto.length) html += '<div class="cmt-tpl-sep">Otras notas</div>';
     html += resto.map(function(t) { return cmtTplHtml(t, f); }).join('');
+    if (!lista.length) html = '<p class="cmt-tpl-vacio">Ninguna nota coincide con «' + cmtEscHtml(CMT_TPL_Q.trim()) + '».</p>';
     document.getElementById('cmtTplList').innerHTML = html;
+    var n = document.getElementById('cmtTplN');
+    if (n) n.textContent = q ? lista.length + ' de ' + CMT_TPL.length : '(' + CMT_TPL.length + ')';
   }
   window.cmtFavToggle = function(id) {
     CMT_FAVS[id] = !CMT_FAVS[id]; cmtRenderPlantillas();
@@ -6875,6 +6889,13 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
     setTimeout(cmtRecalcular, 0);  // con el panel ya visible, para que las cajas tomen su alto
     cmtCargarHistorial();
     cmtCargarPlantillas();
+    var buscaTpl = document.getElementById('cmtTplBuscar');
+    if (buscaTpl) {
+      buscaTpl.addEventListener('input', function() { CMT_TPL_Q = buscaTpl.value; cmtRenderPlantillas(); });
+      buscaTpl.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && buscaTpl.value) { e.stopPropagation(); buscaTpl.value = ''; CMT_TPL_Q = ''; cmtRenderPlantillas(); }   // Esc borra la búsqueda (no cierra el panel)
+      });
+    }
   }
   // Acceso desde el Schedule (botón 💬 en Orden): la primera vez llena Patient, Order # y Product. Si el formulario
   // tenía otro caso, se guarda en el historial (como "Limpiar") antes de llenarlo.
