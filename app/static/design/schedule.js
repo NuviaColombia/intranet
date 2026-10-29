@@ -6942,6 +6942,12 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
         document.getElementById('cmtProdList').innerHTML = todos.map(function(p) { return '<option value="'+p+'"></option>'; }).join('');
       });
     });
+    // Order # (Rosember, 29-oct-2026): solo números. Se quitan las letras y los signos al escribir o pegar, antes de recalcular.
+    var ordenEl = document.getElementById('cmt_j4');
+    if (ordenEl) ordenEl.addEventListener('input', function() {
+      var limpio = String(ordenEl.value || '').replace(/\D/g, '');
+      if (limpio !== ordenEl.value) ordenEl.value = limpio;
+    });
     CMT_FIELDS.forEach(function(k) {
       var el = document.getElementById('cmt_' + k);
       if (el) el.addEventListener('input', cmtRecalcular);
