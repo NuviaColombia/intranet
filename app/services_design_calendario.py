@@ -22,7 +22,7 @@ from datetime import date, datetime, timedelta
 from sqlalchemy import and_, exists, func, or_
 from sqlalchemy.orm import Session, joinedload, selectinload
 
-from .models import Empleado, Solicitud, TipoPermiso
+from .models import EMPRESA_DESIGN, Empleado, Solicitud, TipoPermiso
 from .models_design import (DesignCalActividad, DesignCalAsignado, DesignCalComentario, DesignCalEtiqueta, DesignCalEvento,
                             DesignCalEventoEtiqueta, DesignCalVacacionEstimada, DesignTeam, DesignTeamDesigner)
 from . import services_design as sd
@@ -100,6 +100,28 @@ def perfil(db: Session, user: Empleado) -> dict:
     return sd.memo_sesion(db, ("cal_perfil", user.id), calcular)
 
 
+APROBADOR_ROLES = ("aprobador", "admin", "superadmin")
+
+
+def aprobadores(db: Session) -> dict[int, DesignTeam | None]:
+    """Aprobadores de Design: con rol de aprobador (o admin) o manager de un equipo activo. {empleado_id: equipo que maneja}.
+    Rosember (29-oct-2026): todos los aprobadores ven las vacaciones de los demás aprobadores."""
+    out: dict[int, DesignTeam | None] = {}
+    for t in _equipos_activos(db):
+        if t.manager_id and t.manager_id not in out:
+            out[t.manager_id] = t
+    for e in db.query(Empleado).filter(Empleado.rol.in_(APROBADOR_ROLES), Empleado.activo == 1,
+                                       Empleado.empresa == EMPRESA_DESIGN):
+        out.setdefault(e.id, None)
+    return out
+
+
+
+
+def es_aprobador(db: Session, user: Empleado) -> bool:
+    return user.rol in APROBADOR_ROLES or user.id in aprobadores(db)
+
+
 def miembros(team: DesignTeam) -> set[int]:
     ids = {d.empleado_id for d in team.designers}
     if team.manager_id:
@@ -164,6 +186,9 @@ def personas(db: Session, user: Empleado) -> list[dict]:
             for e in miembros(t):
                 equipos_de.setdefault(e, []).append(t.id)
     equipos_de.setdefault(user.id, [])
+    if es_aprobador(db, user):
+        for aid in aprobadores(db):
+            equipos_de.setdefault(aid, [])
     filas = db.query(Empleado).filter(Empleado.id.in_(list(equipos_de)), Empleado.activo == 1).all()
     out = [{"id": e.id, "name": e.nombre_completo, "email": e.email, "color": color_de(e.id), "role": "member", "team_ids": equipos_de.get(e.id, [])}
            for e in filas]
@@ -636,6 +661,10 @@ def ausencias(db: Session, user: Empleado, desde: date, hasta: date) -> list[dic
     p = perfil(db, user)
     alcance = _alcance_personas(p)
     alcance.setdefault(user.id, None)
+    visibles = set(alcance)
+    otros_aprobadores = aprobadores(db) if es_aprobador(db, user) else {}
+    for aid, team in otros_aprobadores.items():   # su equipo (el que maneja) para mostrarlo; solo sus vacaciones (abajo)
+        alcance.setdefault(aid, team)
     ids = list(alcance)
     filas = (db.query(Solicitud, TipoPermiso, Empleado).join(TipoPermiso, TipoPermiso.id == Solicitud.tipo_id)
              .join(Empleado, Empleado.id == Solicitud.empleado_id)
@@ -644,6 +673,8 @@ def ausencias(db: Session, user: Empleado, desde: date, hasta: date) -> list[dic
     out = []
     for s, tp, e in filas:
         tipo = tipo_de(tp.nombre, bool(tp.es_vacaciones))
+        if e.id not in visibles and tipo != "vacaciones":   # de otros aprobadores solo las vacaciones
+            continue
         privilegiado = p["admin"] or e.id == user.id
         t = alcance.get(e.id)
         out.append({"id": s.id, "external_id": f"Solicitud {s.id}", "person_name": e.nombre_completo, "person_email": e.email,
@@ -659,7 +690,7 @@ def ausencias(db: Session, user: Empleado, desde: date, hasta: date) -> list[dic
                          DesignCalVacacionEstimada.fecha_fin >= desde).all())
     for v in estimadas:
         e = v.empleado
-        if not e:
+        if not e or (e.id not in visibles and e.id not in otros_aprobadores):
             continue
         t = alcance.get(e.id)
         out.append({"id": -v.id, "estimada_id": v.id, "external_id": "Estimada por el aprobador", "person_name": e.nombre_completo,
