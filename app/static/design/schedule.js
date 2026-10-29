@@ -6812,7 +6812,11 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
     if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(texto).then(hecho, clasico); else clasico();
   };
   window.cmtCopiar = function(id, boton) {
-    var copiar = function() { window.dsCopiar(document.getElementById(id).value, boton); };
+    // el icono no cambia de texto: se marca en verde un momento (dsCopiar sin botón no toca el texto)
+    var copiar = function() {
+      window.dsCopiar(document.getElementById(id).value, null);
+      if (boton) { boton.classList.add('ok'); setTimeout(function() { boton.classList.remove('ok'); }, 1200); }
+    };
     if (id === 'cmtOut1') { var faltan = cmtMarcarFaltantes(); if (faltan.length) { cmtVentanaFaltantes(faltan, copiar); return; } }
     copiar();
   };
