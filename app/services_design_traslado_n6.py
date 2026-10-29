@@ -253,6 +253,7 @@ def deshacer(db: Session, marca: str = MARCA) -> dict:
 # hizo), así la producción del mes no cambia: antes contaba una vez (el diseñador de la orden) y así sigue.
 ESPERA_DESDE = date(2026, 10, 1)
 MARCA_ESPERA = "espera_n6_2026_10_29"
+ESPERA_EN_REVISION = True   # botón bloqueado mientras se valida el TC / Nightguard ya hecho (Rosember, 28-oct-2026)
 
 
 def candidatas_espera(db: Session) -> list:
@@ -292,9 +293,35 @@ def revisar_espera(db: Session) -> dict:
             "yaSeHizo": bool(ya), "ordenes": lista}
 
 
+def relacionadas_espera(db: Session) -> dict:
+    """SOLO LECTURA. Para cada candidata, las demás filas de Design (cualquier área, tabla o fecha) cuyo número de orden o notas
+    contienen ese número: sirve para ver si el TC (Zirconia) o el Nightguard ya se hicieron en el formato viejo."""
+    import re
+    salida = []
+    for o in candidatas_espera(db):
+        nums = re.findall(r"\d{5,}", o.orden or "")
+        if not nums:
+            continue
+        conds = [DesignOrden.orden.like(f"%{n}%") for n in nums] + [DesignOrden.notas.like(f"%{n}%") for n in nums]
+        from sqlalchemy import or_
+        otras = (db.query(DesignOrden).options(joinedload(DesignOrden.team).joinedload(DesignTeam.area), joinedload(DesignOrden.designer))
+                 .filter(DesignOrden.id != o.id, or_(*conds)).order_by(DesignOrden.fecha, DesignOrden.id).all())
+        salida.append({"orden": o.orden, "fecha": o.fecha.isoformat(), "producto": o.producto,
+                       "disenador": o.designer.nombre_completo if o.designer else "",
+                       "otras": [{"id": x.id, "fecha": x.fecha.isoformat(), "area": x.team.area.nombre if x.team else "",
+                                  "tabla": x.tabla, "orden": x.orden, "producto": x.producto, "etapa": x.etapa, "estado": x.estado,
+                                  "disenador": x.designer.nombre_completo if x.designer else "", "qc": x.qc,
+                                  "inicio": x.hora_inicio, "fin": x.hora_fin, "notas": x.notas} for x in otras]})
+    con = [x for x in salida if x["otras"]]
+    return {"candidatas": len(salida), "conOtrasFilas": len(con), "sinOtrasFilas": [x["orden"] for x in salida if not x["otras"]],
+            "detalle": con}
+
+
 def pasar_espera(db: Session, user) -> dict:
     """Una sola vez: mueve al 29 a Órdenes en espera las órdenes viejas terminadas (ver candidatas_espera), con copia de seguridad."""
     from .models_design import DesignConexionRegla
+    if ESPERA_EN_REVISION:
+        raise ValueError("En revisión: primero hay que validar qué órdenes ya tienen hecho el TC o el Nightguard.")
     if db.query(DesignConexionRegla).filter(DesignConexionRegla.tipo == "respaldo", DesignConexionRegla.clave == MARCA_ESPERA).first():
         raise ValueError("Ya se pasaron las órdenes viejas a Órdenes en espera.")
     ordenes = candidatas_espera(db)

@@ -1878,6 +1878,13 @@ def diagnostico_espera_n6(user: Empleado = Depends(require_admin), db: Session =
     return stn.revisar_espera(db)
 
 
+@router.get("/design/diagnostico/espera-n6/relacionadas")
+def diagnostico_espera_n6_relacionadas(user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    """Admins, SOLO LECTURA: otras filas de Design con el mismo número de cada orden vieja candidata a espera."""
+    from .. import services_design_traslado_n6 as stn
+    return stn.relacionadas_espera(db)
+
+
 @router.get("/design/diagnostico/espera-n6/pasar")
 def diagnostico_espera_n6_pasar(user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
     """Admins: botón para pasar una vez esas órdenes a Órdenes en espera (con copia de seguridad para deshacerlo)."""
