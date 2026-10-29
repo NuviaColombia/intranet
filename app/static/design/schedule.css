@@ -840,6 +840,9 @@
   .cmt-tpl-flecha { display:inline-block; color:#9ca3af; transition:transform .12s; }
   .cmt-tpl-item.abierta .cmt-tpl-flecha { transform:rotate(90deg); }
   .cmt-tpl-vacio { margin:6px 0; color:#64748b; font-size:13px; }
+  /* Save y Load debajo de «Everything is Ok comment», con el mismo ancho que ese recuadro (Rosember, 29-oct-2026) */
+  .cmt-acciones { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px; }
+  .cmt-acciones .btn { width:100%; margin:0; height:36px; font-weight:600; }
   .cmt-nota-aplica { width:100%; box-sizing:border-box; height:34px; padding:4px 8px; border:1px solid #d8dde3; border-radius:6px; font-size:13px; margin-bottom:6px; }
   .cmt-hist-item { display:flex; justify-content:space-between; align-items:center; padding:6px 8px; border:1px solid #eee; border-radius:6px; margin-bottom:6px; font-size:12px; }
   /* Comments N2 / Face Design: hojas FAQ */

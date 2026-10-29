@@ -268,7 +268,6 @@
       <div class="cmt-section"><h4>Notes</h4>
         <div class="cmt-field"><textarea id="cmt_b30" rows="3" placeholder="Notas libres…"></textarea></div>
       </div>
-      <button type="button" class="btn gris" onclick="cmtLimpiar()">🧹 Limpiar (guarda en historial)</button>
     </div>
 
     <div class="cmt-col">
@@ -282,6 +281,11 @@
           <button type="button" class="btn mini" onclick="cmtCopiar('cmtOut2', this)">Copiar</button></div>
         <textarea id="cmtOut2" readonly aria-label="Everything is Ok comment (generado)"></textarea>
       </div>
+      {# Save y Load (Rosember, 29-oct-2026): Save guarda el caso en el historial y vacía el formulario; Load abre los guardados #}
+      <div class="cmt-acciones">
+        <button type="button" class="btn gris" id="cmtBtnSave" onclick="cmtLimpiar()" title="Guarda el caso en tu historial y vacía el formulario">Save</button>
+        <button type="button" class="btn gris" id="cmtBtnLoad" onclick="cmtAbrirLoad()" title="Abre los casos guardados con Save para cargarlos">Load</button>
+      </div>
     </div>
 
     <div class="cmt-col">
@@ -290,7 +294,6 @@
         <input type="search" id="cmtTplBuscar" class="cmt-tpl-buscar" placeholder="🔎 Buscar nota…" autocomplete="off" aria-label="Buscar nota por nombre o por texto">
         <div class="cmt-tpl-scroll"><div id="cmtTplList"></div></div>
       </div>
-      <div class="cmt-section"><h4>Historial <span id="cmtHistCount" style="color:#64748b;font-weight:600"></span> (se borra a los 2 días)</h4><div id="cmtHistList"></div></div>
     </div>
   </div>
 </div>

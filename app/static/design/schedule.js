@@ -6852,26 +6852,55 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
     if (d.toDateString() === ayer.toDateString()) return 'Ayer ' + hm;
     return pad(d.getDate()) + '/' + pad(d.getMonth() + 1) + ' ' + hm;
   }
+  // Load (29-oct-2026): los casos guardados con Save. Se piden al servidor y se pintan dentro de la ventana Load si está abierta.
   function cmtCargarHistorial() {
-    api('/design/api/comentarios/historial').then(function(hist) {
-      var cont = document.getElementById('cmtHistList');
-      document.getElementById('cmtHistCount').textContent = hist.length ? '(' + hist.length + ')' : '';
-      cont.innerHTML = hist.map(function(h) {
-        var nombre = ((h.paciente || '') + ' ' + (h.orden || '')).trim() || '(sin nombre)';
-        return '<div class="cmt-hist-item"><span>' + cmtEscHtml(nombre) +
-               ' <small style="color:#64748b;white-space:nowrap">' + cmtFechaHist(h.creadoEn) + '</small></span>' +
-               '<span><button type="button" class="btn mini" onclick="cmtVerHistorial(' + h.id + ')">Cargar</button> ' +
-               '<button type="button" class="btn rojo mini" onclick="cmtBorrarHistorial(' + h.id + ')">×</button></span></div>';
-      }).join('') || '<p style="color:#4b5563;font-size:12px">Sin historial reciente.</p>';
+    return api('/design/api/comentarios/historial').then(function(hist) {
       window._cmtHist = hist;
-    });
+      cmtPintarLoad();
+    }).catch(function() {});
+  }
+  function cmtPintarLoad() {
+    var cont = document.getElementById('cmtLoadList');
+    if (!cont) return;
+    var hist = window._cmtHist || [];
+    var titulo = document.getElementById('cmtLoadN'); if (titulo) titulo.textContent = hist.length ? '(' + hist.length + ')' : '';
+    cont.innerHTML = hist.map(function(h) {
+      var nombre = ((h.paciente || '') + ' ' + (h.orden || '')).trim() || '(sin nombre)';
+      return '<div class="cmt-hist-item"><span>' + cmtEscHtml(nombre) +
+             ' <small style="color:#64748b;white-space:nowrap">' + cmtFechaHist(h.creadoEn) + '</small></span>' +
+             '<span><button type="button" class="btn mini" onclick="cmtVerHistorial(' + h.id + ')">Cargar</button> ' +
+             '<button type="button" class="btn rojo mini" title="Borrar este guardado" onclick="cmtBorrarHistorial(' + h.id + ')">×</button></span></div>';
+    }).join('') || '<p style="color:#4b5563;font-size:13px">No hay casos guardados. Con Save se guardan aquí y se borran solos a los 2 días.</p>';
   }
   window.cmtVerHistorial = function(id) {
     var h = (window._cmtHist || []).find(function(x) { return x.id === id; });
-    if (h) cmtCargarDesdeHistorial(h.campos);
+    if (h) { cmtCargarDesdeHistorial(h.campos); cmtCerrarLoad(); }
   };
   window.cmtBorrarHistorial = function(id) {
     postJSON('/design/api/comentarios/historial/' + id + '/eliminar').then(cmtCargarHistorial);
+  };
+  // Ventana Load centrada (ds-qc-bg / ds-qc: la misma que los demás diálogos). Se cierra con Cerrar, Esc o clic fuera.
+  var cmtLoadTeclas = null;
+  window.cmtAbrirLoad = function() {
+    if (document.getElementById('cmtLoad')) return;
+    var bg = document.createElement('div'); bg.className = 'ds-qc-bg'; bg.id = 'cmtLoad';
+    bg.innerHTML = '<div class="ds-qc cmt-load" role="dialog" aria-modal="true" aria-labelledby="cmtLoadTit" style="width:520px;max-height:80vh;display:flex;flex-direction:column">' +
+      '<h4 id="cmtLoadTit">Load <span id="cmtLoadN" style="color:#64748b;font-weight:600"></span></h4>' +
+      '<div class="ds-qc-sub">Casos guardados con Save que todavía no se han borrado. Cargar reemplaza lo que hay en el formulario.</div>' +
+      '<div id="cmtLoadList" style="overflow-y:auto;min-height:120px;margin:8px 0"></div>' +
+      '<div class="ds-qc-btns"><button type="button" class="btn gris" data-l="no">Cerrar</button></div></div>';
+    document.body.appendChild(bg);
+    bg.querySelector('[data-l="no"]').onclick = cmtCerrarLoad;
+    bg.addEventListener('mousedown', function(e) { if (e.target === bg) cmtCerrarLoad(); });
+    cmtLoadTeclas = function(e) { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); cmtCerrarLoad(); } };
+    document.addEventListener('keydown', cmtLoadTeclas, true);
+    cmtPintarLoad();
+    cmtCargarHistorial();
+  };
+  window.cmtCerrarLoad = function() {
+    var bg = document.getElementById('cmtLoad'); if (bg) bg.remove();
+    if (cmtLoadTeclas) document.removeEventListener('keydown', cmtLoadTeclas, true);
+    cmtLoadTeclas = null;
   };
 
   var cmtListo = false;
