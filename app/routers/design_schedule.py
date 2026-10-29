@@ -1833,6 +1833,44 @@ def diagnostico_traslado_n6(orden: str = Query("", max_length=50), user: Emplead
     return stn.revisar(db, orden)
 
 
+@router.get("/design/diagnostico/traslado-n6/pasar")
+def diagnostico_traslado_n6_pasar(user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    """Admins: botón para hacer una vez el traslado adelantado de N6 del 28 al 29 (con copia de seguridad para deshacerlo)."""
+    from .. import services_design_traslado_n6 as stn
+    r = stn.revisar(db)
+    html = ("<!doctype html><meta charset='utf-8'><title>Traslado N6</title><body style='font-family:system-ui;max-width:900px;margin:24px auto'>"
+            "<h2>Traslado adelantado de N6: del 28 al 29 de octubre</h2>"
+            f"<p>{r['total']} órdenes pasarían al 29 en el formato nuevo. " + ("<b>Ya se hizo.</b>" if r["yaSeHizo"] else "") + "</p>"
+            "<p>Revisa el detalle en <a href='/design/diagnostico/traslado-n6'>/design/diagnostico/traslado-n6</a>.</p>"
+            + ("<button id='b' style='font-size:16px;padding:8px 16px'>Pasar ahora</button>" if not r["yaSeHizo"] else
+               "<button id='d' style='font-size:16px;padding:8px 16px'>Deshacer el traslado</button>") +
+            "<pre id='r' style='white-space:pre-wrap;background:#f6f6f6;padding:10px'></pre><script>"
+            "function ir(u,m){if(!confirm(m))return;fetch(u,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})"
+            ".then(r=>r.json()).then(j=>{document.getElementById('r').textContent=JSON.stringify(j,null,1)})}"
+            "var b=document.getElementById('b');if(b)b.onclick=()=>ir('/design/api/diagnostico/traslado-n6/pasar','¿Pasar ahora las órdenes de N6 del 28 al 29?');"
+            "var d=document.getElementById('d');if(d)d.onclick=()=>ir('/design/api/diagnostico/traslado-n6/deshacer','¿Devolver todo como estaba?');"
+            "</script></body>")
+    return Response(html, media_type="text/html")
+
+
+@router.post("/design/api/diagnostico/traslado-n6/pasar")
+def api_traslado_n6_pasar(user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    from .. import services_design_traslado_n6 as stn
+    try:
+        return stn.pasar_ahora(db, user)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@router.post("/design/api/diagnostico/traslado-n6/deshacer")
+def api_traslado_n6_deshacer(user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    from .. import services_design_traslado_n6 as stn
+    try:
+        return stn.deshacer(db)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
 @router.get("/design/diagnostico/produccion")
 def diagnostico_produccion(request: Request, team_id: int | None = None, desde: str = "", hasta: str = "",
                            user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):

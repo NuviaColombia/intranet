@@ -1896,9 +1896,11 @@ def trasladar_holds(db: Session, ahora: datetime | None = None) -> int:
         o.fecha = destino
         o.orden_visual = (max_visual or 0) + 1  # queda al final de las órdenes de ese día
         if o.team_id in equipos_n6 and destino >= N6_SEPARADO_DESDE:   # N6 con cuatro tablas (28-oct-2026)
-            o.tabla = n6_tabla_de_producto(o.tabla, o.producto)
-            if fecha_ant < N6_SEPARADO_DESDE and es_tabla_etapas(o.tabla) and es_etapa_zirconia(o.etapa) and not o.z_estado:
-                o.z_estado = o.estado or ""   # venía en Zirconia design: su estado pasa a la columna de esa etapa
+            if fecha_ant < N6_SEPARADO_DESDE:   # viene del formato viejo: llega convertida (ver services_design_traslado_n6)
+                from . import services_design_traslado_n6 as stn
+                stn.aplicar(o, *stn.convertir(db, o, fecha_ant)[:2])
+            else:
+                o.tabla = n6_tabla_de_producto(o.tabla, o.producto)
         db.flush()
     db.commit()
     alinear_copias_rd(db)
