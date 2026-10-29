@@ -2676,6 +2676,39 @@ window.addEventListener('unhandledrejection', function(ev) {
     dsPoblarCatalogos(cont, spec, tabla);
     dsPintarColores(cont);
     dsAplicarOcultas(tabla);
+    dsAlinearBloques(cont);
+  }
+  // N6 (Rosember, 29-oct-2026): cada orden es su propia tablita y el navegador le daba a cada columna el ancho de lo que esa orden
+  // tenía escrito, así que las columnas quedaban disparejas de una orden a otra. Se mide cada columna en todas las tablitas de la
+  // sección y se le pone a todas el ancho mayor. La columna se reconoce por su nombre y su etapa (y la ficha de una etapa encogida
+  // por su etapa), así se alinean también cuando una orden tiene otra etapa encogida.
+  function dsAlinearBloques(cont) {
+    var bloques = cont ? [].slice.call(cont.querySelectorAll('table.ds-bloque')) : [];
+    if (!bloques.length) return;
+    // se mide el ancho natural (sin estirar la tablita al 100 %), así todas las secciones empiezan sus columnas igual
+    bloques.forEach(function(tb) { var cg = tb.querySelector('colgroup.ds-cols'); if (cg) cg.remove(); tb.style.tableLayout = ''; tb.style.width = 'max-content'; });
+    var max = {}, cols = bloques.map(function(tb) {
+      var etiq = tb.querySelector('tr.ds-tr-etiq');
+      if (!etiq) return null;
+      var celdas = [].slice.call(etiq.children).concat([].slice.call(tb.querySelectorAll('td.ds-ficha')));
+      if (!celdas.length || !celdas[0].offsetWidth) return null;   // oculta (filtro u ocultas): se alinea igual al final
+      celdas.sort(function(a, b) { return a.getBoundingClientRect().left - b.getBoundingClientRect().left; });
+      var vistas = {};
+      return celdas.map(function(c) {
+        var k = c.dataset.ficha ? 'F:' + c.dataset.ficha : ((c.className.match(/ds-g-\w+/) || [''])[0] + '|' + c.textContent.trim());
+        vistas[k] = (vistas[k] || 0) + 1; k += '#' + vistas[k];
+        var w = c.getBoundingClientRect().width;
+        if (!(max[k] >= w)) max[k] = w;
+        return k;
+      });
+    });
+    bloques.forEach(function(tb, i) {
+      var ks = cols[i];
+      if (!ks) return;
+      var total = 0, html = ks.map(function(k) { var w = Math.ceil(max[k]); total += w; return '<col style="width:' + w + 'px">'; }).join('');
+      tb.insertAdjacentHTML('afterbegin', '<colgroup class="ds-cols">' + html + '</colgroup>');
+      tb.style.tableLayout = 'fixed'; tb.style.width = total + 'px';
+    });
   }
 
   // Vista del diseñador: solo edita horas, estado, notas y (N3/N6) esferas y crítico; el resto de la orden es del manager.
@@ -3240,6 +3273,7 @@ window.addEventListener('unhandledrejection', function(ev) {
       dsConectarFila(nueva, tabla);
       dsPoblarCatalogos(conPrevias ? document.getElementById(DS_CONT[tabla]) : nueva, spec, tabla);
       dsAjustarCreaProducto(tbody);
+      if (bloqueT) dsAlinearBloques(contT);
     }
   }
 
