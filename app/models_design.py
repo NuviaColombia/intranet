@@ -283,6 +283,8 @@ class DesignComentarioTemplate(Base):
     # Dueño (28-oct-2026, autorizado por Rosember): cada diseñador tiene sus propias plantillas. NULL = plantillas base (las
     # que había hasta ese día): no se listan, solo sirven para la copia que recibe cada persona la primera vez.
     empleado_id: Mapped[int | None] = mapped_column(ForeignKey("empleados.id"), nullable=True, index=True)
+    # A qué productos aplica (29-oct-2026, autorizado por Rosember): '' = los demás productos, 'ng' = Nightguard, 'tc' = TC.
+    aplica_a: Mapped[str] = mapped_column(String(10), default="")
 
 
 class DesignPreApprovedSheet(Base):

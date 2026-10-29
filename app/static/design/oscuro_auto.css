@@ -57,7 +57,7 @@
 :root[data-ds-tema="oscuro"] .modulo-desc { color:var(--gris); }
 :root[data-ds-tema="oscuro"] .modulo.disabled:hover { box-shadow:0 1px 3px rgba(0,0,0,.08); }
 
-/* ---- static\design\schedule.css (807 reglas) ---- */
+/* ---- static\design\schedule.css (808 reglas) ---- */
 :root[data-ds-tema="oscuro"] .ds-overlay { background:#131925; }
 :root[data-ds-tema="oscuro"] .ds-overlay-close { background:#111827; color:#fff; border:none; box-shadow:0 3px 10px rgba(0,0,0,.3); }
 :root[data-ds-tema="oscuro"] .ds-overlay-close:hover { background:var(--ds-acento); color:var(--ds-acento-t); }
@@ -440,6 +440,7 @@
 :root[data-ds-tema="oscuro"] button.cmt-tpl-name:hover { color:var(--ds-acento); }
 :root[data-ds-tema="oscuro"] .cmt-tpl-flecha { color:#9ca3af; }
 :root[data-ds-tema="oscuro"] .cmt-tpl-vacio { color:#aab2bf; }
+:root[data-ds-tema="oscuro"] .cmt-nota-aplica { border:1px solid #323b4b; }
 :root[data-ds-tema="oscuro"] .cmt-hist-item { border:1px solid #2e3544; }
 :root[data-ds-tema="oscuro"] .faq-hoja { border:1px solid #323b4b; background:#131925; }
 :root[data-ds-tema="oscuro"] .faq-hoja.activo { background:var(--ds-acento); color:var(--ds-acento-t); border-color:var(--ds-acento); }

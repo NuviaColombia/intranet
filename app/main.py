@@ -364,6 +364,11 @@ def init_db():
     if "empleado_id" not in {c["name"] for c in inspect(engine).get_columns("design_comentario_templates")}:
         with engine.begin() as conn:
             conn.execute(text("ALTER TABLE design_comentario_templates ADD COLUMN empleado_id INTEGER REFERENCES empleados(id)"))
+    # Comments N3: «Aplica a» de cada plantilla de nota (29-oct-2026, autorizado por Rosember). Solo agrega la columna;
+    # las que ya existen quedan en '' (los demás productos) y services_design.cmt_aplica_a_una_vez marca las de Nightguard / TC.
+    if "aplica_a" not in {c["name"] for c in inspect(engine).get_columns("design_comentario_templates")}:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE design_comentario_templates ADD COLUMN aplica_a VARCHAR(10) DEFAULT ''"))
     # Support Time · grupos de Cliq del aviso «Support en turno» (20-oct-2026, autorizado por Rosember). Solo agrega la columna.
     if "cliq_canales" not in {c["name"] for c in inspect(engine).get_columns("design_support_config")}:
         with engine.begin() as conn:

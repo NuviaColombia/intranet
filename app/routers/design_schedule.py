@@ -2609,36 +2609,39 @@ def api_bar_adapt_agregar(payload: BarAdaptIn, user: Empleado = Depends(require_
 @router.get("/design/api/comentarios/templates")
 def api_cmt_templates_listar(user: Empleado = Depends(require_comments("n3")),
                                    db: Session = Depends(get_db)):
-    return [{"id": t.id, "nombre": t.nombre, "texto": t.texto, "esFija": bool(t.es_fija)}
-           for t in sd.cmt_templates_listar(db, user.id)]
+    # puedeBorrar: las 11 originales (esFija) solo las borra un admin; las demás, su dueño. aplicaA: '' / 'ng' / 'tc'
+    return [{"id": t.id, "nombre": t.nombre, "texto": t.texto, "esFija": bool(t.es_fija), "aplicaA": t.aplica_a or "",
+             "puedeBorrar": (not t.es_fija) or sd.es_admin(user)}
+            for t in sd.cmt_templates_listar(db, user.id)]
 
 
 class CmtTemplateIn(BaseModel):
     nombre: str
     texto: str
+    aplicaA: str | None = None   # '' = los demás productos, 'ng', 'tc'; sin dato no cambia
 
 
 @router.post("/design/api/comentarios/templates")
 def api_cmt_template_crear(payload: CmtTemplateIn, user: Empleado = Depends(require_comments("n3")),
                                  db: Session = Depends(get_db)):
-    t = sd.cmt_template_crear(db, payload.nombre, payload.texto, user.nombre_completo, user.id)
-    return {"id": t.id, "nombre": t.nombre, "texto": t.texto}
+    t = sd.cmt_template_crear(db, payload.nombre, payload.texto, user.nombre_completo, user.id, aplica_a=payload.aplicaA or "")
+    return {"id": t.id, "nombre": t.nombre, "texto": t.texto, "aplicaA": t.aplica_a or ""}
 
 
 @router.post("/design/api/comentarios/templates/{template_id}")
 def api_cmt_template_editar(template_id: int, payload: CmtTemplateIn,
                                   user: Empleado = Depends(require_comments("n3")),
                                   db: Session = Depends(get_db)):
-    t = sd.cmt_template_editar(db, template_id, payload.nombre, payload.texto, user.id)
+    t = sd.cmt_template_editar(db, template_id, payload.nombre, payload.texto, user.id, aplica_a=payload.aplicaA)
     if not t:
         raise HTTPException(404, "No encontrada.")
-    return {"id": t.id, "nombre": t.nombre, "texto": t.texto}
+    return {"id": t.id, "nombre": t.nombre, "texto": t.texto, "aplicaA": t.aplica_a or ""}
 
 
 @router.post("/design/api/comentarios/templates/{template_id}/eliminar")
 def api_cmt_template_eliminar(template_id: int, user: Empleado = Depends(require_comments("n3")),
                                     db: Session = Depends(get_db)):
-    if not sd.cmt_template_eliminar(db, template_id, user.nombre_completo, user.id):
+    if not sd.cmt_template_eliminar(db, template_id, user.nombre_completo, user.id, es_admin_user=sd.es_admin(user)):
         raise HTTPException(404, "No encontrada.")
     return {"mensaje": "Eliminada."}
 

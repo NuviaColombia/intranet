@@ -4029,7 +4029,8 @@ def _cmt_sembrar(db: Session, empleado_id: int) -> None:
         return
     mapa = {}
     for b in db.query(DesignComentarioTemplate).filter(DesignComentarioTemplate.empleado_id.is_(None)).order_by(DesignComentarioTemplate.orden, DesignComentarioTemplate.id):
-        c = DesignComentarioTemplate(nombre=b.nombre, texto=b.texto, es_fija=b.es_fija, orden=b.orden, creado_por=b.creado_por, empleado_id=empleado_id)
+        c = DesignComentarioTemplate(nombre=b.nombre, texto=b.texto, es_fija=b.es_fija, orden=b.orden, creado_por=b.creado_por, empleado_id=empleado_id,
+                                     aplica_a=b.aplica_a or "")
         db.add(c); db.flush()
         mapa[b.id] = c.id
     for f in db.query(DesignFavorito).filter(DesignFavorito.empleado_id == empleado_id, DesignFavorito.tipo == "cmt_template"):
@@ -4044,6 +4045,7 @@ def _cmt_sembrar(db: Session, empleado_id: int) -> None:
 
 def cmt_templates_listar(db: Session, empleado_id: int) -> list[DesignComentarioTemplate]:
     cmt_ng_con_paciente_una_vez(db)
+    cmt_aplica_a_una_vez(db)   # antes de sembrar: las copias nuevas salen de las base ya marcadas
     _cmt_sembrar(db, empleado_id)
     return (db.query(DesignComentarioTemplate).filter(DesignComentarioTemplate.empleado_id == empleado_id)
             .order_by(DesignComentarioTemplate.orden, DesignComentarioTemplate.id).all())
@@ -4076,17 +4078,56 @@ def cmt_ng_con_paciente_una_vez(db: Session) -> None:
         db.rollback()
 
 
-def cmt_template_crear(db: Session, nombre: str, texto: str, creado_por: str = "", empleado_id: int | None = None) -> DesignComentarioTemplate:
+# Plantillas por producto (Rosember, 29-oct-2026): «aplica_a» '' = los demás productos, 'ng' = Nightguard, 'tc' = TC. Comments
+# muestra solo las del tipo del producto escrito (ver cmtGrupoProducto en schedule.js).
+CMT_APLICA_A = ("", "ng", "tc")
+CMT_NOMBRES_NG = {"bite de ng finalizado", "ng design ready to print", "ng hold esperando pc"}
+CMT_NOMBRES_TC = {"tc ready to mill"}
+_cmt_aplica_ok = {"ok": False}
+
+
+def _cmt_aplica_a(v) -> str:
+    v = (v or "").strip().lower()
+    return v if v in CMT_APLICA_A else ""
+
+
+def _cmt_clave_nombre(nombre: str) -> str:
+    return re.sub(r"[^a-z0-9]+", " ", _normalizar_texto(nombre)).strip()
+
+
+def cmt_aplica_a_una_vez(db: Session) -> None:
+    """Una sola vez (29-oct-2026): marca como de Nightguard o de TC las notas que dijo Rosember (comparando el nombre sin tildes,
+    mayúsculas ni signos), en todas las listas. Las demás quedan en «los demás productos»."""
+    from .models_design import DesignConexionRegla
+    if _cmt_aplica_ok["ok"]:
+        return
+    marca = "cmt_aplica_a_v1"
+    try:
+        if not db.query(DesignConexionRegla).filter(DesignConexionRegla.tipo == "sistema", DesignConexionRegla.clave == marca).first():
+            for t in db.query(DesignComentarioTemplate).all():
+                k = _cmt_clave_nombre(t.nombre)
+                t.aplica_a = "ng" if k in CMT_NOMBRES_NG else "tc" if k in CMT_NOMBRES_TC else (t.aplica_a or "")
+            db.add(DesignConexionRegla(tipo="sistema", clave=marca, creado_por="Sistema"))
+            db.commit()
+        _cmt_aplica_ok["ok"] = True
+    except Exception:
+        log.exception("Design: falló una actualización de datos; se deshace y queda registrado")
+        db.rollback()
+
+
+def cmt_template_crear(db: Session, nombre: str, texto: str, creado_por: str = "", empleado_id: int | None = None,
+                       aplica_a: str = "") -> DesignComentarioTemplate:
     orden = db.query(DesignComentarioTemplate).filter(DesignComentarioTemplate.empleado_id == empleado_id).count() + 1
     t = DesignComentarioTemplate(nombre=nombre.strip() or "Sin título", texto=texto, orden=orden,
-                                 creado_por=creado_por, empleado_id=empleado_id)
+                                 creado_por=creado_por, empleado_id=empleado_id, aplica_a=_cmt_aplica_a(aplica_a))
     db.add(t)
     db.commit()
     db.refresh(t)
     return t
 
 
-def cmt_template_editar(db: Session, template_id: int, nombre: str, texto: str, empleado_id: int | None = None) -> DesignComentarioTemplate | None:
+def cmt_template_editar(db: Session, template_id: int, nombre: str, texto: str, empleado_id: int | None = None,
+                        aplica_a: str | None = None) -> DesignComentarioTemplate | None:
     t = cmt_template_propia(db, template_id, empleado_id)
     if not t:  # solo las propias; todas se pueden editar (también las 11 del formato original); las fijas no se borran
         return None
@@ -4095,15 +4136,19 @@ def cmt_template_editar(db: Session, template_id: int, nombre: str, texto: str, 
                          {"template": {"nombre": t.nombre + " (anterior)", "texto": t.texto, "creado_por": t.creado_por}, "empleado_id": t.empleado_id}, "")
     t.nombre = nombre.strip() or t.nombre
     t.texto = texto
+    if aplica_a is not None:   # sin dato (un cliente viejo) no cambia
+        t.aplica_a = _cmt_aplica_a(aplica_a)
     db.commit()
     return t
 
 
-def cmt_template_eliminar(db: Session, template_id: int, eliminado_por: str = "", empleado_id: int | None = None) -> bool:
+def cmt_template_eliminar(db: Session, template_id: int, eliminado_por: str = "", empleado_id: int | None = None,
+                          es_admin_user: bool = False) -> bool:
     t = cmt_template_propia(db, template_id, empleado_id)
-    if not t or t.es_fija:
+    if not t or (t.es_fija and not es_admin_user):   # las 11 originales solo las borra un admin (29-oct-2026); siempre de su propia lista
         return False
-    payload = {"template": {"nombre": t.nombre, "texto": t.texto, "creado_por": t.creado_por}, "empleado_id": t.empleado_id}
+    payload = {"template": {"nombre": t.nombre, "texto": t.texto, "creado_por": t.creado_por, "aplica_a": t.aplica_a or ""},
+               "empleado_id": t.empleado_id}
     _trash_registrar(db, "cmt-template", f'Plantilla de nota: "{t.nombre}"', payload, eliminado_por)
     db.query(DesignFavorito).filter(DesignFavorito.tipo == "cmt_template",
                                     DesignFavorito.cmt_template_id == template_id).delete()
@@ -5598,7 +5643,7 @@ def _trash_restaurar_cmt_template(db: Session, payload: dict) -> bool:
     dueno = payload.get("empleado_id")   # vuelve a su dueño (las borradas antes del 28-oct-2026 vuelven a las base)
     orden = db.query(DesignComentarioTemplate).filter(DesignComentarioTemplate.empleado_id == dueno).count() + 1
     db.add(DesignComentarioTemplate(nombre=t["nombre"], texto=t["texto"], orden=orden,
-                                    creado_por=t.get("creado_por", ""), empleado_id=dueno))
+                                    creado_por=t.get("creado_por", ""), empleado_id=dueno, aplica_a=_cmt_aplica_a(t.get("aplica_a"))))
     return True
 
 

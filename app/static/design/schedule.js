@@ -6582,7 +6582,7 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
     document.getElementById("cmtOut1").value = cmtGenReadyToMill(f);
     document.getElementById("cmtOut2").value = cmtGenEverythingOk(f);
     cmtAutoGrow(document.getElementById("cmtOut1")); cmtAutoGrow(document.getElementById("cmtOut2")); cmtAutoGrow(document.getElementById("cmt_b30"));
-    var po = (f.b4 || '') + '\u0001' + (f.j4 || '');   // las plantillas solo usan paciente y orden ({PO})
+    var po = cmtClavePo(f);   // las plantillas usan paciente y orden ({PO}) y el tipo de producto (cuáles se ven)
     if (po !== cmtPoPintado) cmtRenderPlantillas();
     cmtGuardarLuego(f);
   }
@@ -6659,17 +6659,34 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
   function cmtEscHtml(v) { return String(v == null ? "" : v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
   // Plantillas: compartidas por todo el equipo (las 11 fijas + las que se agreguen); favoritos por persona.
   // Mientras carga (o si falla la carga) se muestran las 11 fijas escritas aquí.
-  var CMT_TPL = CMT_TEMPLATES.map(function(t) { return {id: null, n: t.n, t: t.t, fija: true}; });
+  var CMT_TPL = CMT_TEMPLATES.map(function(t) { return {id: null, n: t.n, t: t.t, fija: true, aplicaA: t.n === 'NG Design Ready to print' ? 'ng' : '', puedeBorrar: false}; });
   var CMT_FAVS = {};
   // Plantillas compactas (Rosember, 29-oct-2026): buscador y texto desplegable. Solo cambia cómo se ve la lista.
   var CMT_TPL_Q = '';           // lo escrito en el buscador
   var CMT_TPL_ABIERTAS = {};    // notas con el texto desplegado (se conserva al volver a pintar la lista)
+  // Plantillas por producto (Rosember, 29-oct-2026): Nightguard solo ve las de Nightguard, TC las de TC y los demás productos el resto.
+  // Mismo criterio que dsTipoProduccion (Schedule) y PRODUCTOS_TC en services_design.py. Sin producto escrito se ven todas.
+  var CMT_PRODUCTOS_TC = ['n6 - full mouth zirk - over ti-bar (8mm or less)'];
+  var CMT_GRUPO_TXT = {ng: 'Nightguard', tc: 'TC'};
+  function cmtGrupoProducto(v) {
+    var p = String(v == null ? '' : v).replace(/\s+/g, ' ').trim().toLowerCase();
+    if (!p) return '';
+    if (/\btc\b/.test(p) || CMT_PRODUCTOS_TC.indexOf(p) >= 0) return 'tc';
+    if (/nightguard/.test(p)) return 'ng';
+    return 'otro';
+  }
+  function cmtTplAplica(t, grupo) {
+    if (!grupo) return true;
+    if (grupo === 'ng' || grupo === 'tc') return t.aplicaA === grupo;
+    return !t.aplicaA;   // los demás productos: las que no son de Nightguard ni de TC
+  }
+  function cmtClavePo(f) { return (f.b4 || '') + '\u0001' + (f.j4 || '') + '\u0001' + cmtGrupoProducto(f.b7); }
   function cmtTplClave(tpl) { return tpl.id != null ? 'i' + tpl.id : 'f' + CMT_TPL.indexOf(tpl); }
   function cmtSinTildes(v) { return String(v == null ? '' : v).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
   function cmtCargarPlantillas() {
     Promise.all([api('/design/api/comentarios/templates'), api('/design/api/favoritos/activos')]).then(function(r) {
       if (!Array.isArray(r[0])) return;
-      CMT_TPL = r[0].map(function(t) { return {id: t.id, n: t.nombre, t: t.texto, fija: t.esFija}; });
+      CMT_TPL = r[0].map(function(t) { return {id: t.id, n: t.nombre, t: t.texto, fija: t.esFija, aplicaA: t.aplicaA || '', puedeBorrar: !!t.puedeBorrar}; });
       CMT_FAVS = {};
       ((r[1] || {}).cmtTemplates || []).forEach(function(id) { CMT_FAVS[id] = true; });
       cmtRenderPlantillas();
@@ -6682,7 +6699,7 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
     // Todas se pueden editar; las 11 del formato original no se borran
     var edit = tpl.id == null ? '' :
       '<button type="button" class="cmt-tpl-ico" title="Editar nota" onclick="cmtNotaAbrir(' + tpl.id + ')">✎</button>' +
-      (tpl.fija ? '' : '<button type="button" class="cmt-tpl-ico" title="Eliminar nota (va a la Papelera)" onclick="cmtNotaEliminar(' + tpl.id + ')">🗑</button>');
+      (!tpl.puedeBorrar ? '' : '<button type="button" class="cmt-tpl-ico" title="Eliminar nota (va a la Papelera)" onclick="cmtNotaEliminar(' + tpl.id + ')">🗑</button>');
     var clave = cmtTplClave(tpl), abierta = !!CMT_TPL_ABIERTAS[clave], texto = cmtTplText(tpl, f);
     return '<div class="cmt-tpl-item' + (abierta ? ' abierta' : '') + '"><div class="cmt-tpl-head">' + star +
            '<button type="button" class="cmt-tpl-name" aria-expanded="' + abierta + '" title="' + cmtEscHtml(texto.slice(0, 300)).replace(/"/g, '&quot;') +
@@ -6694,18 +6711,22 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
   var cmtPoPintado = null;
   function cmtRenderPlantillas() {
     var f = cmtLeer();
-    cmtPoPintado = (f.b4 || '') + '\u0001' + (f.j4 || '');
+    cmtPoPintado = cmtClavePo(f);
+    var grupo = cmtGrupoProducto(f.b7);
+    var delProducto = CMT_TPL.filter(function(t) { return cmtTplAplica(t, grupo); });
     var q = cmtSinTildes(CMT_TPL_Q).trim();
-    var lista = CMT_TPL.filter(function(t) { return !q || cmtSinTildes(t.n).indexOf(q) >= 0 || cmtSinTildes(t.t).indexOf(q) >= 0; });
+    var lista = delProducto.filter(function(t) { return !q || cmtSinTildes(t.n).indexOf(q) >= 0 || cmtSinTildes(t.t).indexOf(q) >= 0; });
     var favs = lista.filter(function(t) { return t.id != null && CMT_FAVS[t.id]; });
     var resto = lista.filter(function(t) { return favs.indexOf(t) < 0; });
     var html = favs.map(function(t) { return cmtTplHtml(t, f); }).join('');
     if (favs.length && resto.length) html += '<div class="cmt-tpl-sep">Otras notas</div>';
     html += resto.map(function(t) { return cmtTplHtml(t, f); }).join('');
-    if (!lista.length) html = '<p class="cmt-tpl-vacio">Ninguna nota coincide con «' + cmtEscHtml(CMT_TPL_Q.trim()) + '».</p>';
+    if (!lista.length) html = q ? '<p class="cmt-tpl-vacio">Ninguna nota coincide con «' + cmtEscHtml(CMT_TPL_Q.trim()) + '».</p>'
+      : '<p class="cmt-tpl-vacio">No hay notas para este tipo de producto. Crea una con + o cambia «Aplica a» de una nota (✎).</p>';
     document.getElementById('cmtTplList').innerHTML = html;
     var n = document.getElementById('cmtTplN');
-    if (n) n.textContent = q ? lista.length + ' de ' + CMT_TPL.length : '(' + CMT_TPL.length + ')';
+    if (n) n.textContent = (q ? lista.length + ' de ' + delProducto.length : '(' + (delProducto.length < CMT_TPL.length ? delProducto.length + ' de ' + CMT_TPL.length : delProducto.length) + ')') +
+                          (CMT_GRUPO_TXT[grupo] ? ' · ' + CMT_GRUPO_TXT[grupo] : '');
   }
   window.cmtFavToggle = function(id) {
     CMT_FAVS[id] = !CMT_FAVS[id]; cmtRenderPlantillas();
@@ -6726,6 +6747,7 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
       '<h4 id="cmtNotaTit">' + (tpl ? 'Editar nota' : 'Nueva nota') + '</h4>' +
       '<div class="ds-qc-sub">La ve todo el equipo en Plantillas de notas.</div>' +
       '<label class="cmt-nota-lbl" for="cmtNotaNom">Nombre</label><input type="text" id="cmtNotaNom" maxlength="150" placeholder="Ej: Hold — falta scan">' +
+      '<label class="cmt-nota-lbl" for="cmtNotaAplica">Aplica a</label><select id="cmtNotaAplica" class="cmt-nota-aplica"><option value="">Los demás productos</option><option value="ng">Nightguard</option><option value="tc">TC</option></select>' +
       '<label class="cmt-nota-lbl" for="cmtNotaTxt">Texto</label>' +
       '<label class="cmt-nota-po"><input type="checkbox" id="cmtNotaPo"' + (conPo ? ' checked' : '') + '> Empezar con el paciente y la orden</label>' +
       '<textarea id="cmtNotaTxt" placeholder="Escribe la nota..."></textarea>' +
@@ -6735,6 +6757,9 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
     var nom = bg.querySelector('#cmtNotaNom'), txt = bg.querySelector('#cmtNotaTxt'), err = bg.querySelector('#cmtNotaErr');
     var btnSi = bg.querySelector('[data-n="si"]');
     nom.value = tpl ? tpl.n : ''; txt.value = texto; nom.focus();
+    // una nota nueva queda para el tipo de producto que se está trabajando (así no desaparece de la lista al guardarla)
+    var gAct = cmtGrupoProducto(cmtLeer().b7);
+    bg.querySelector('#cmtNotaAplica').value = tpl ? (tpl.aplicaA || '') : (gAct === 'ng' || gAct === 'tc' ? gAct : '');
     [nom, txt].forEach(function(el) { el.addEventListener('input', function() { err.innerText = ''; }); });
     var cerrar = function() { bg.remove(); document.removeEventListener('keydown', teclas, true); };
     var guardar = function() {
@@ -6744,7 +6769,7 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
       if (!t.trim()) { err.innerText = 'Escribe el texto de la nota.'; txt.focus(); return; }
       if (bg.querySelector('#cmtNotaPo').checked) t = '{PO}' + sepPo + t;
       btnSi.disabled = true;
-      postJSON('/design/api/comentarios/templates' + (tpl ? '/' + tpl.id : ''), {nombre: n, texto: t}).then(function(r) {
+      postJSON('/design/api/comentarios/templates' + (tpl ? '/' + tpl.id : ''), {nombre: n, texto: t, aplicaA: bg.querySelector('#cmtNotaAplica').value}).then(function(r) {
         if (!r || !r.id) throw new Error((r && r.detail) || 'No se pudo guardar.');
         cerrar(); cmtCargarPlantillas();
       }).catch(function(e) { err.innerText = e.message || 'No se pudo guardar.'; btnSi.disabled = false; });
