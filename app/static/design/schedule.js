@@ -3237,7 +3237,9 @@ window.addEventListener('unhandledrejection', function(ev) {
   function dsTrasGuardar(tabla, tr, o) {
     if (tr.isConnected && tr.closest('table.ds-bloque') && tr._etapa !== undefined &&
         (tr._encogidas !== dsEtapasColapsadas(o, tabla).join(',') || tr._etapa !== dsEtapaActual(o, tabla))) {
-      dsRenderTabla(tabla); dsRenderKpis(DS.diaData); return;   // N6: una etapa se encogió o se abrió, o la orden pasó a otra etapa
+      // N6: una etapa se encogió o se abrió, o la orden pasó a otra etapa. Órdenes en espera también se vuelve a pintar: al marcar
+      // el QC la orden sale de la tabla y entra allí, y antes no se veía hasta refrescar (Rosember, 29-oct-2026)
+      dsRenderTabla(tabla); dsRenderEspera(); dsRenderKpis(DS.diaData); return;
     }
     if (tr.isConnected && DS_ETAPAS_TABLA[tabla] && DS.diaData && DS.diaData.n6Separado &&
         !!tr.closest('#dsTablaEspera') !== !!dsEsperaInfo(o, tabla)) {   // N6: entró o salió de Órdenes en espera
