@@ -57,7 +57,7 @@
 :root[data-ds-tema="oscuro"] .modulo-desc { color:var(--gris); }
 :root[data-ds-tema="oscuro"] .modulo.disabled:hover { box-shadow:0 1px 3px rgba(0,0,0,.08); }
 
-/* ---- static\design\schedule.css (798 reglas) ---- */
+/* ---- static\design\schedule.css (800 reglas) ---- */
 :root[data-ds-tema="oscuro"] .ds-overlay { background:#131925; }
 :root[data-ds-tema="oscuro"] .ds-overlay-close { background:#111827; color:#fff; border:none; box-shadow:0 3px 10px rgba(0,0,0,.3); }
 :root[data-ds-tema="oscuro"] .ds-overlay-close:hover { background:var(--ds-acento); color:var(--ds-acento-t); }
@@ -400,6 +400,8 @@
 :root[data-ds-tema="oscuro"] .cmt-section { background:#131925; border:1px solid #323b4b; }
 :root[data-ds-tema="oscuro"] .cmt-section h4 { color:var(--ds-acento); }
 :root[data-ds-tema="oscuro"] .cmt-field label { color:#bbc1cc; }
+:root[data-ds-tema="oscuro"] .cmt-impl-h { color:#bbc1cc; }
+:root[data-ds-tema="oscuro"] #cmtPanelN3 .cmt-impl-grid .cmt-field input.ro { background:#1d2125; }
 :root[data-ds-tema="oscuro"] .cmt-field input, :root[data-ds-tema="oscuro"] .cmt-field select, :root[data-ds-tema="oscuro"] .cmt-field textarea { border:1px solid #323b4b; }
 :root[data-ds-tema="oscuro"] .cmt-field input.ro { background:#1d2125; }
 :root[data-ds-tema="oscuro"] #cmtPanelN3 .cmt-field input.cmt-impl { background:#131925 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236b7280'/%3E%3C/svg%3E") no-repeat right 9px center; }

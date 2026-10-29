@@ -751,6 +751,14 @@
   .cmt-grid.c2 { grid-template-columns:1fr 1fr; }
   .cmt-grid.c3 { grid-template-columns:1fr 1fr 1fr; }
   .cmt-field label { display:block; font-size:11px; color:#4b5563; margin-bottom:2px; }
+  /* Implants (Upper y Lower): una sola sección; encabezados de columna arriba y una fila por arcada (Rosember, 29-oct-2026) */
+  .cmt-impl-grid { display:grid; grid-template-columns:max-content minmax(0, 1.5fr) minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 1.5fr); gap:8px; align-items:center; }
+  .cmt-impl-h { font-size:11px; color:#4b5563; }
+  .cmt-impl-r { font-size:13px; padding-right:4px; }
+  .cmt-impl-grid .cmt-field { position:relative; min-width:0; }
+  .cmt-impl-grid .cmt-field input, .cmt-impl-grid .cmt-field select { display:block; margin:0; }   /* sin los márgenes de los campos: Upper / Lower quedan a la altura de sus campos */
+  .cmt-impl-grid .cmt-field label { position:absolute; width:1px; height:1px; margin:0; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }   /* solo para lectores de pantalla */
+  #cmtPanelN3 .cmt-impl-grid .cmt-field input.ro { background:#f4f6f8; }   /* gris, como en el diseño (antes blanco) */
   .cmt-field input, .cmt-field select, .cmt-field textarea { width:100%; padding:6px 8px; border:1px solid #d8dde3; border-radius:6px; font-size:13px; box-sizing:border-box; }
   .cmt-field input.ro { background:#f4f6f8; }
   /* Implantes: lista de selección múltiple */

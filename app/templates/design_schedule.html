@@ -240,20 +240,22 @@
           <div class="cmt-field"><label for="cmt_j11">VDO Digital</label><input id="cmt_j11" placeholder="-0.8"></div>
         </div>
       </div>
-      <div class="cmt-section"><h4>Implants Upper</h4>
-        <div class="cmt-grid c2">
-          <div class="cmt-field"><label for="cmt_b15">Skipped implants</label><input id="cmt_b15" class="cmt-impl" data-arcada="up" data-par="cmt_f15" readonly placeholder="Elegir…" aria-haspopup="listbox"></div>
-          <div class="cmt-field"><label for="cmt_f15">Still moved</label><input id="cmt_f15" class="cmt-impl" data-arcada="up" data-par="cmt_b15" readonly placeholder="Elegir…" aria-haspopup="listbox"></div>
-          <div class="cmt-field"><label for="cmt_j15">Total</label><select id="cmt_j15"></select></div>
-          <div class="cmt-field"><label for="cmt_L15">Total moved (auto)</label><input class="ro" id="cmt_L15" readonly></div>
-        </div>
-      </div>
-      <div class="cmt-section"><h4>Implants Lower</h4>
-        <div class="cmt-grid c2">
-          <div class="cmt-field"><label for="cmt_b19">Skipped implants</label><input id="cmt_b19" class="cmt-impl" data-arcada="low" data-par="cmt_f19" readonly placeholder="Elegir…" aria-haspopup="listbox"></div>
-          <div class="cmt-field"><label for="cmt_f19">Still moved</label><input id="cmt_f19" class="cmt-impl" data-arcada="low" data-par="cmt_b19" readonly placeholder="Elegir…" aria-haspopup="listbox"></div>
-          <div class="cmt-field"><label for="cmt_j19">Total</label><select id="cmt_j19"></select></div>
-          <div class="cmt-field"><label for="cmt_L19">Total moved (auto)</label><input class="ro" id="cmt_L19" readonly></div>
+      {# Implants Upper e Implants Lower en una sola sección, con los nombres de columna una vez arriba y una fila por arcada
+         (Rosember, 29-oct-2026). Mismos campos y mismos id: solo cambió la disposición. Las etiquetas de cada campo siguen
+         ahí, ocultas a la vista, para lectores de pantalla. #}
+      <div class="cmt-section"><h4>Implants</h4>
+        <div class="cmt-impl-grid">
+          <span></span><span class="cmt-impl-h">Skipped</span><span class="cmt-impl-h">Still moved</span><span class="cmt-impl-h">Total</span><span class="cmt-impl-h">Total moved</span>
+          <b class="cmt-impl-r">Upper</b>
+          <div class="cmt-field"><label for="cmt_b15">Upper: Skipped implants</label><input id="cmt_b15" class="cmt-impl" data-arcada="up" data-par="cmt_f15" readonly placeholder="Elegir…" aria-haspopup="listbox"></div>
+          <div class="cmt-field"><label for="cmt_f15">Upper: Still moved</label><input id="cmt_f15" class="cmt-impl" data-arcada="up" data-par="cmt_b15" readonly placeholder="Elegir…" aria-haspopup="listbox"></div>
+          <div class="cmt-field"><label for="cmt_j15">Upper: Total</label><select id="cmt_j15"></select></div>
+          <div class="cmt-field"><label for="cmt_L15">Upper: Total moved (auto)</label><input class="ro" id="cmt_L15" readonly placeholder="auto"></div>
+          <b class="cmt-impl-r">Lower</b>
+          <div class="cmt-field"><label for="cmt_b19">Lower: Skipped implants</label><input id="cmt_b19" class="cmt-impl" data-arcada="low" data-par="cmt_f19" readonly placeholder="Elegir…" aria-haspopup="listbox"></div>
+          <div class="cmt-field"><label for="cmt_f19">Lower: Still moved</label><input id="cmt_f19" class="cmt-impl" data-arcada="low" data-par="cmt_b19" readonly placeholder="Elegir…" aria-haspopup="listbox"></div>
+          <div class="cmt-field"><label for="cmt_j19">Lower: Total</label><select id="cmt_j19"></select></div>
+          <div class="cmt-field"><label for="cmt_L19">Lower: Total moved (auto)</label><input class="ro" id="cmt_L19" readonly placeholder="auto"></div>
         </div>
       </div>
       <div class="cmt-section"><h4>Additional comments</h4>
