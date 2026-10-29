@@ -6773,6 +6773,7 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
     var f = cmtLeer();
     var vaciar = function() {
       CMT_FIELDS.forEach(function(k) { var el = document.getElementById("cmt_"+k); if (el) el.value = ""; });
+      cmtPcPonerRecordado();
       cmtRecalcular(); cmtGuardarAhora();   // el borrador se borra ya, no 250 ms después
     };
     // como el original: se guarda si hay cualquier dato (sin paciente queda como "(sin nombre)")
@@ -6869,6 +6870,7 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
       if (el && el.tagName === 'SELECT') el.addEventListener('change', cmtRecalcular);
     });
     cmtRestaurarBorrador();  // lo que estaba escrito antes de actualizar la página
+    cmtPcPonerRecordado();   // el PC casi siempre es el mismo en esta computadora (Rosember, 29-oct-2026)
     cmtRecalcular();
     setTimeout(cmtRecalcular, 0);  // con el panel ya visible, para que las cajas tomen su alto
     cmtCargarHistorial();
@@ -6884,6 +6886,7 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
     cmtGuardarOrden(f);   // lo que había en el formulario queda guardado en su orden
     var guardado = window.cmtTrabajoDeOrden(o.orden);
     CMT_FIELDS.forEach(function(k) { var el = document.getElementById("cmt_"+k); if (el) { el.value = ""; el.classList.remove('cmt-missing'); } });
+    cmtPcPonerRecordado();
     if (guardado && guardado.campos) {
       cmtCargarDesdeHistorial(guardado.campos);
       if (window.dsToast) window.dsToast('Se recuperó lo que trabajaste en la orden ' + o.orden + '.');
@@ -6894,6 +6897,23 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
     }
     if (cmtNe(f.j4) && f.j4 !== o.orden && window.dsToast && !guardado) window.dsToast('Lo de la orden ' + f.j4 + ' quedó guardado: vuelve a tocar su 💬 para seguir.');
   };
+  // PC recordado en esta computadora (Rosember, 29-oct-2026): al escribirlo se guarda; al abrir Comments o al empezar un caso
+  // nuevo aparece el último que se usó. Se puede cambiar en cualquier momento. Vive solo en este navegador.
+  var CMT_PC_CLAVE = 'dsCmtPcUltimo';
+  function cmtPcRecordado() { try { return localStorage.getItem(CMT_PC_CLAVE) || ''; } catch (e) { return ''; } }
+  function cmtPcPonerRecordado() {
+    var el = document.getElementById('cmt_l11');
+    if (el && !String(el.value || '').trim()) el.value = cmtPcRecordado();
+  }
+  (function() {
+    var el = document.getElementById('cmt_l11');
+    if (!el) return;
+    el.addEventListener('input', function() {
+      var v = String(el.value || '').trim();
+      if (!v) return;   // vacío no borra lo recordado: solo se cambia cuando escriben otro
+      try { localStorage.setItem(CMT_PC_CLAVE, v); } catch (e) {}
+    });
+  })();
   // Bar adapt: las 4 fijas + las que agregue el equipo; la última opción permite agregar otra.
   function cmtBarAdaptPintar(lista) {
     var sel = document.getElementById('cmt_b11'), actual = sel.value === '__nueva__' ? (sel._antes || '') : sel.value;
