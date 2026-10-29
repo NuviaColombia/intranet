@@ -1954,7 +1954,12 @@ def api_actualizar_orden(orden_id: int, payload: OrdenIn,
                                     ("xQc", "x_qc", payload.xQc), ("xQcReporte", "x_qc_reporte", payload.xQcReporte),
                                     ("nQc", "n_qc", payload.nQc), ("nQcReporte", "n_qc_reporte", payload.nQcReporte))
               if k in payload.model_fields_set}
+        if (qc.get("qc") and not orden_existente.qc and sd._normalizar_texto(orden_existente.estado or "") == "approved"
+                and sd.n6_por_etapas(team.area.nombre, orden_existente.fecha, orden_existente.tabla)):
+            qc["estado"] = sd.ESTADO_DR_AUT   # N6: el QC de Bite design la pasa a Dr authorization
         o = sd.actualizar_orden(db, orden_id, qc) if qc else orden_existente
+        if sd.n6_por_etapas(team.area.nombre, o.fecha, o.tabla) and sd.en_espera_n6(o):
+            sd._traslado_hecho_hasta = None   # quedó en espera en un día cerrado: pasa ya al día abierto
         return _con_copia_n2(db, user, o, qc_antes, sd.serializar_orden(o))
     enviados = {CAMPO_COLUMNA[k] for k in payload.model_fields_set if k in CAMPO_COLUMNA}
     datos = {k: v for k, v in _datos_desde_in(payload).items() if k in enviados}
@@ -1994,6 +1999,13 @@ def api_actualizar_orden(orden_id: int, payload: OrdenIn,
             if (col in datos and (datos[col] or "") != (getattr(orden_existente, col) or "")
                     and getattr(orden_existente, p + "designer_id") != user.id):
                 raise HTTPException(403, "Solo puedes cambiar el estado de la etapa en la que estás asignado.")
+    if sep and solo_propia:   # N6: el diseñador sigue el flujo de cada etapa (el manager y el admin pueden corregir)
+        for p, col in sd.ETAPAS_N6:
+            if col in datos and not sd.transicion_n6_permitida(getattr(orden_existente, col), datos[col], getattr(orden_existente, p + "qc")):
+                raise HTTPException(400, sd.MSG_FLUJO_N6)
+    if (sep and datos.get("qc") and not orden_existente.qc
+            and sd._normalizar_texto(datos.get("estado", orden_existente.estado) or "") == "approved"):
+        datos["estado"] = sd.ESTADO_DR_AUT   # N6: al marcar el QC de Bite design, la etapa pasa sola a Dr authorization
     if sep:
         for p, col in sd.ETAPAS_N6:   # Hold solo después de iniciar, en cada etapa
             if (col in datos and sd.es_hold(datos[col]) and not sd.es_hold(getattr(orden_existente, col))
@@ -2055,6 +2067,8 @@ def api_actualizar_orden(orden_id: int, payload: OrdenIn,
     manual = sigue and sd.cambio_manual_horas(orden_existente, datos, set(auto_horas))
     primera = not (orden_existente.hora_inicio or "").strip()
     o = sd.actualizar_orden(db, orden_id, datos)
+    if sep and sd.en_espera_n6(o) and sd.dia_cerrado(o.fecha):
+        sd._traslado_hecho_hasta = None   # quedó en espera en un día cerrado: pasa ya al día abierto
     if sigue:
         sd.seguir_diseno(o, estado_antes, manual, primera)
         db.commit()

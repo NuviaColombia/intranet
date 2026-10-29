@@ -1322,6 +1322,16 @@
   .ds-nota-t { font-size:13px; white-space:pre-wrap; word-break:break-word; }
   .ds-nota-x { position:absolute; top:4px; right:6px; border:0; background:transparent; color:#b91c1c; font-size:18px; line-height:1; cursor:pointer; }
   .ds-notas-txt { width:100%; box-sizing:border-box; resize:vertical; }
+  /* N6: Órdenes en espera (se ven como canceladas; solo los dos estados que siguen quedan activos) */
+  .ds-espera-tog { border:0; background:transparent; padding:0; font:inherit; color:inherit; cursor:pointer; display:inline-flex; align-items:center; gap:6px; }
+  .ds-espera-flecha { display:inline-block; transition:transform .2s; }
+  .ds-espera-tog[aria-expanded="false"] .ds-espera-flecha { transform:rotate(-90deg); }
+  .ds-espera-n { color:#64748b; font-weight:600; }
+  .ds-espera-vacio { margin:4px 0; color:#64748b; font-size:13px; }
+  #dsTablaEspera { overflow-x:auto; }
+  table.ds-tabla tr.ds-fila-espera td { background:#f3f4f6 !important; }
+  table.ds-tabla tr.ds-fila-espera input, table.ds-tabla tr.ds-fila-espera select {
+    color:#6b7280; -webkit-text-fill-color:#6b7280; text-decoration:line-through; }
   table.ds-tabla tr.ds-banda td.ds-g-b { background:#e0ecff; color:#1e3a8a; }
   table.ds-tabla tr.ds-banda td.ds-g-z { background:#e6f6ef; color:#14532d; }
   table.ds-tabla tr.ds-banda td.ds-g-x { background:#fef3c7; color:#78350f; }

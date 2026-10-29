@@ -38,9 +38,37 @@ class N6CuatroTablas(unittest.TestCase):
         actual = {c: "" for c in sd.COLUMNAS_HORAS_ETAPAS}
         r = sd.horas_por_estado_etapas(actual, {"n_estado": "Initiated"}, {"n_estado": ""})
         self.assertEqual(list(r), ["n_hora_inicio"])   # solo la etapa de ese estado; Bite y las demás no se tocan
-        r = sd.horas_por_estado_etapas({**actual, "z_hora_inicio": "09:00"}, {"z_estado": "Dr authorization"}, {"z_estado": "Initiated"})
-        self.assertEqual(list(r), ["z_s_hold"])   # «Dr authorization» cuenta como Hold
+        r = sd.horas_por_estado_etapas({**actual, "hora_inicio": "09:00", "hora_fin": "10:00"}, {"estado": "Dr authorization"}, {"estado": "Approved"})
+        self.assertEqual(r, {})   # Dr authorization (lo pone el QC de Bite) no marca horas
         self.assertEqual(sd.horas_por_estado_etapas(actual, {"estado": "Initiated"}, {"estado": "Initiated"}), {})   # sin cambio de estado
+
+    def test_hold_y_reinitiated(self):
+        a = {c: "" for c in sd.COLUMNAS_HORAS_ETAPAS}
+        a.update({"z_hora_inicio": "09:00", "z_s_hold": "09:30"})
+        self.assertEqual(list(sd.horas_por_estado_etapas(a, {"z_estado": "Reinitiated"}, {"z_estado": "Hold"})), ["z_f_hold"])
+        a.update({"z_f_hold": "10:00", "z_hold_minutos": 0})
+        r = sd.horas_por_estado_etapas(a, {"z_estado": "Hold"}, {"z_estado": "Reinitiated"})
+        self.assertEqual((r["z_hold_minutos"], r["z_f_hold"]), (30, ""))   # el Hold anterior pasa a T. Hold y empieza otro
+
+    def test_changes_reabre_la_etapa(self):
+        a = {c: "" for c in sd.COLUMNAS_HORAS_ETAPAS}
+        a.update({"z_hora_inicio": "09:00", "z_hora_fin": "11:00", "z_s_hold": "09:30", "z_f_hold": "10:00", "z_hold_minutos": 0,
+                  "z_min_previos": 15, "z_qc": True})
+        r = sd.horas_por_estado_etapas(a, {"z_estado": "Changes"}, {"z_estado": "Approved"})
+        self.assertEqual(r["z_min_previos"], 15 + 90)   # 2 h − 30 min de Hold, más el ciclo anterior
+        self.assertEqual((r["z_hora_inicio"], r["z_hora_fin"], r["z_qc"]), ("", "", False))
+
+    def test_flujo_y_espera(self):
+        from types import SimpleNamespace as O
+        ok = sd.transicion_n6_permitida
+        self.assertTrue(ok("", "Ready to design", False) and ok("Ready to design", "Initiated", False) and ok("Hold", "Reinitiated", False))
+        self.assertFalse(ok("Initiated", "Reinitiated", False) or ok("Hold", "Approved", False) or ok("Approved", "Changes", False))
+        self.assertTrue(ok("Approved", "Changes", True) and ok("Hold", "Canceled", False) and ok("Initiated", "Skipped", False))
+        base = dict(tabla="tibar", estado="", qc=False, z_estado="", z_qc=False, x_estado="", x_qc=False, n_estado="", n_qc=False)
+        self.assertTrue(sd.en_espera_n6(O(**{**base, "estado": "Dr authorization", "qc": True})))
+        self.assertFalse(sd.en_espera_n6(O(**{**base, "estado": "Approved"})))   # sin QC todavía no
+        self.assertFalse(sd.en_espera_n6(O(**{**base, "estado": "Dr authorization", "qc": True, "z_estado": "Ready to design"})))
+        self.assertFalse(sd.en_espera_n6(O(**{**base, "n_estado": "Approved", "n_qc": True})))   # Nightguard design: terminó
 
     def test_notas_de_cada_etapa(self):
         import json

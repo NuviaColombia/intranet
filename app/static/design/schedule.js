@@ -899,7 +899,10 @@ window.addEventListener('unhandledrejection', function(ev) {
   function dsEsCampoQc(k) { return DS_CAMPOS_QC.indexOf(k) >= 0; }
   function dsCampoReporte(chk) { return chk && dsEsCampoQc(chk.dataset.campo) ? chk.dataset.campo + 'Reporte' : 'qcReporte'; }
   // QC que cierra la orden (Material Change: el de Zirconia)
-  function dsQcFinal(f) { return dsTablaBase(f.tabla) === 'material' ? !!f.zQc : !!f.qc; }
+  function dsQcFinal(f) {
+    if (DS_ETAPAS_TABLA[f.tabla] && DS.diaData && DS.diaData.n6Separado) return !!f.nQc;   // N6 por etapas: el de Nightguard design
+    return dsTablaBase(f.tabla) === 'material' ? !!f.zQc : !!f.qc;
+  }
   function dsMinEtapa(ini, fin, s, fh, previos) {
     var t = dsEntre(ini, fin); if (t === null) return null;
     fh = dsFinHold(s, fh, fin);
@@ -907,10 +910,12 @@ window.addEventListener('unhandledrejection', function(ev) {
   }
   // Minutos de Bite, de Zirconia y total (misma fórmula que material_minutos en services_design.py)
   function dsMaterialMin(f) {
-    var b = dsMinEtapa(f.horaInicio, f.horaFin, f.sHold, f.fHold, f.holdMinutos);
-    var z = dsMinEtapa(f.zHoraInicio, f.zHoraFin, f.zSHold, f.zFHold, f.zHoldMinutos);
-    var x = dsMinEtapa(f.xHoraInicio, f.xHoraFin, f.xSHold, f.xFHold, f.xHoldMinutos);   // N6: «Zirconia» de Over Ti-bar
-    var n = dsMinEtapa(f.nHoraInicio, f.nHoraFin, f.nSHold, f.nFHold, f.nHoldMinutos);   // N6: «Nightguard design»
+    // cada etapa suma también sus ciclos anteriores (Changes: minPrevios, que no se muestran; igual que material_minutos)
+    var mas = function(v, prev) { prev = parseFloat(prev) || 0; return v === null && !prev ? null : (v || 0) + prev; };
+    var b = mas(dsMinEtapa(f.horaInicio, f.horaFin, f.sHold, f.fHold, f.holdMinutos), f.minPrevios);
+    var z = mas(dsMinEtapa(f.zHoraInicio, f.zHoraFin, f.zSHold, f.zFHold, f.zHoldMinutos), f.zMinPrevios);
+    var x = mas(dsMinEtapa(f.xHoraInicio, f.xHoraFin, f.xSHold, f.xFHold, f.xHoldMinutos), f.xMinPrevios);   // N6: «Zirconia» de Over Ti-bar
+    var n = mas(dsMinEtapa(f.nHoraInicio, f.nHoraFin, f.nSHold, f.nFHold, f.nHoldMinutos), f.nMinPrevios);   // N6: «Nightguard design»
     var todas = [b, z, x, n].filter(function(v) { return v !== null; });
     return {b: b, z: z, x: x, n: n, t: todas.length ? todas.reduce(function(a, v) { return a + v; }, 0) : null};
   }
@@ -943,6 +948,38 @@ window.addEventListener('unhandledrejection', function(ev) {
   // Estados que N6 ya no usa (Rosember, 28-oct-2026): desde el 29-oct-2026 no se ofrecen en ninguna sección de N6 (ESTADOS_QUITADOS_N6 en el servidor).
   // Una orden que ya tiene uno lo sigue mostrando.
   var DS_ESTADOS_QUITADOS_N6 = ['pickup received', 'order entered', 'bite ready'];
+  // Flujo de cada etapa (Rosember, 28-oct-2026; FLUJO_N6 en el servidor): Ready to design → Initiated → Hold ⇄ Reinitiated → Approved.
+  // Skipped y Canceled siempre. Changes solo en Órdenes en espera. Los managers y admins ven todos los estados para corregir.
+  var DS_FLUJO_N6 = {'': ['ready to design', 'initiated'], 'ready to design': ['initiated'], 'changes': ['initiated'],
+                     'initiated': ['hold', 'approved'], 'hold': ['reinitiated'], 'reinitiated': ['hold', 'approved']};
+  var DS_ETAPAS_TABLA = {material: ['', 'z', 'n'], tibar: ['', 'z', 'x', 'n']};   // prefijo de los campos de cada etapa, en orden
+  var DS_PREFIJO_ESTADO = {estado: '', zEstado: 'z', xEstado: 'x', nEstado: 'n'};
+  function dsCampoEt(p, k) { return p ? p + k.charAt(0).toUpperCase() + k.slice(1) : k; }   // ('z', 'estado') → 'zEstado'
+  // Órdenes en espera (igual que en_espera_n6): la última etapa con estado está aprobada (o en Dr authorization) con su QC y no es
+  // Nightguard design. Devuelve {ap: etapa aprobada, sig: siguiente} o null.
+  function dsEsperaInfo(f, tabla) {
+    var et = DS_ETAPAS_TABLA[tabla];
+    if (!et || !f || !DS.diaData || !DS.diaData.n6Separado) return null;
+    var act = et.filter(function(p) { return String(f[dsCampoEt(p, 'estado')] || '').trim(); });
+    if (!act.length) return null;
+    var p = act[act.length - 1], i = et.indexOf(p), e = dsNorm(f[dsCampoEt(p, 'estado')]);
+    if (i === et.length - 1 || !(e === 'approved' || e === 'dr authorization') || !f[dsCampoEt(p, 'qc')]) return null;
+    return {ap: p, sig: et[i + 1]};
+  }
+  // ¿Se ofrece este estado en esta lista? (solo N6 por etapas; las demás tablas no cambian)
+  function dsEstadoEnFlujo(sel, tabla, v) {
+    if (!DS_ETAPAS_TABLA[tabla] || !(DS.diaData && DS.diaData.n6Separado)) return true;
+    var tr = dsTrDeSel(sel); if (!tr || !dsBandaDe(tr)) return true;
+    var e = dsNorm(v); if (e === 'skipped' || e === 'canceled') return true;
+    var f = (DS.diaData[tabla] || []).find(function(x) { return String(x.id) === tr.dataset.id; }) || {};
+    var p = DS_PREFIJO_ESTADO[sel.dataset.campo];
+    if (sel.closest('#dsTablaEspera')) {   // en espera: Changes en la etapa aprobada y Ready to design en la siguiente
+      var esp = dsEsperaInfo(f, tabla);
+      return !!esp && (p === esp.ap ? e === 'changes' : p === esp.sig ? e === 'ready to design' : false);
+    }
+    if (!dsSoloPropias()) return true;   // managers y admins: todos, para corregir
+    return (DS_FLUJO_N6[dsNorm(f[sel.dataset.campo])] || []).indexOf(e) >= 0;
+  }
   var DS_N6_24Z = ['N6 - Material Change Full Mouth 24Z', 'N6 - Material Change Single 24Z', 'N6 - Redo Material Change Full Mouth 24Z',
     'N6 - Redo Material Change Single 24Z', 'N6 - Full Mouth 24Z Remake', 'N6 - Single 24Z Remake'];
   var DS_PRODUCTOS_N6 = {   // igual que PRODUCTOS_N6_TABLA en services_design.py
@@ -1581,7 +1618,7 @@ window.addEventListener('unhandledrejection', function(ev) {
   }
 
   function dsFilasOrdenadas(tabla) {
-    var filas = (DS.diaData[tabla] || []).slice();
+    var filas = (DS.diaData[tabla] || []).filter(function(f) { return !dsEsperaInfo(f, tabla); });   // las en espera van en su sección
     var s = DS.sort[tabla];
     if (s) {
       filas.sort(function(a, b) {
@@ -2272,7 +2309,8 @@ window.addEventListener('unhandledrejection', function(ev) {
         root.querySelectorAll('select[data-campo="' + c.k + '"]').forEach(function(sel) {
           var actual = sel.dataset.valorActual || '';
           valores.forEach(function(v) {
-            if (c.cat === 'estado' && v !== actual && dsN6Separado() && DS_ESTADOS_QUITADOS_N6.indexOf(dsNorm(v)) >= 0 && root.id === DS_CONT[tabla]) return;
+            if (c.cat === 'estado' && v !== actual && dsN6Separado() && DS_ESTADOS_QUITADOS_N6.indexOf(dsNorm(v)) >= 0 && (root.id === DS_CONT[tabla] || root.closest('#dsTablaEspera'))) return;
+            if (c.cat === 'estado' && v !== actual && !dsEstadoEnFlujo(sel, tabla, v)) return;   // N6: solo los que siguen en el flujo
             if (c.cat === 'estado' && v !== actual && DS_ESTADOS_SOLO_NG.indexOf(String(v).trim().toLowerCase()) >= 0 && !dsFilaEsNG(sel, tabla)) return;
             // «Changes» también en Cirugías/Dummy de N6 (Rosember, 19-oct-2026); «Dr authorization» sigue siendo solo de Material Change
             var changesN6 = dsNorm(v) === 'changes' && dsTablaBase(tabla) === 'principal' && dsAreaNombre() === DS_AREA_MATERIAL;
@@ -2366,7 +2404,7 @@ window.addEventListener('unhandledrejection', function(ev) {
   var DS_COLOR_ESTADO = {'hold': '237,150,110', 'ready to design': '245,200,60', 'changes': '245,200,60', 'html': '230,110,150',
                          'approved': '120,200,70', 'dr authorization': '120,200,70', 'canceled': '156,163,175'};
   function dsPintarCelda(sel, colores) {
-    if (!sel || !sel.closest('#dsTablaMaterial, #dsTablaTibar, #dsTablaDummy, #dsTablaPrincipal, #dsTablaNightguard')) return;   // las prestadas son de otro equipo
+    if (!sel || !sel.closest('#dsTablaMaterial, #dsTablaTibar, #dsTablaDummy, #dsTablaPrincipal, #dsTablaNightguard, #dsTablaEspera')) return;   // las prestadas son de otro equipo
     if (dsEsRD()) colores = dsColoresDeFila(sel);
     var x = colores || dsColoresLeer(), campo = sel.dataset.campo, tipo = DS_COLOR_TIPO[campo];
     if (tipo === 'p' && !dsColoresProductos()) return;
@@ -2603,6 +2641,58 @@ window.addEventListener('unhandledrejection', function(ev) {
       });
     });
   }
+
+  // ---------- Órdenes en espera (N6, Rosember, 28-oct-2026) ----------
+  // Debajo de Tiempos libres: las órdenes de Material Change y Over Ti-bar con una etapa aprobada y su QC, que esperan a otro
+  // departamento. Se ven como canceladas y solo se edita el estado de la etapa aprobada (Changes la reabre) y el de la siguiente
+  // (Ready to design la devuelve a su tabla para seguir). Pasan solas al día siguiente mientras esperan.
+  function dsRenderEspera() {
+    var panel = document.getElementById('dsPanelEspera'), cont = document.getElementById('dsTablaEspera');
+    if (!panel || !cont) return;
+    var activa = !!(DS.diaData && DS.diaData.n6Separado);
+    panel.style.display = activa ? '' : 'none';
+    if (!activa) { cont.innerHTML = ''; return; }
+    var grupos = ['material', 'tibar'].map(function(t) { return [t, (DS.diaData[t] || []).filter(function(f) { return dsEsperaInfo(f, t); })]; })
+      .filter(function(g) { return g[1].length; });
+    var n = grupos.reduce(function(a, g) { return a + g[1].length; }, 0);
+    document.getElementById('dsEsperaN').textContent = n ? '(' + n + ')' : '';
+    if (!n) { cont.innerHTML = '<p class="ds-espera-vacio">No hay órdenes en espera.</p>'; return; }
+    var html = '';
+    grupos.forEach(function(g) {
+      var spec = dsSpec(g[0]);
+      html += '<h4 class="ds-prest-h">' + (g[0] === 'tibar' ? 'Over Ti-bar' : 'Material Change') + '</h4>' +
+              '<table class="ds-tabla ds-tabla-material ds-espera" data-tabla="' + g[0] + '"><tbody>';
+      g[1].forEach(function(f) { html += dsFilaConBandaHtml(spec, f, g[0]); });
+      html += '</tbody></table>';
+    });
+    DS.renderizando = true;
+    try { cont.innerHTML = html; } finally { DS.renderizando = false; }
+    grupos.forEach(function(g) {
+      var tb = cont.querySelector('table[data-tabla="' + g[0] + '"]'), spec = dsSpec(g[0]);
+      tb.querySelectorAll('tbody tr[data-id]').forEach(function(tr) {
+        dsConectarFila(tr, g[0]); dsMarcarFila(tr, g[0]);
+        tr.classList.add('ds-fila-espera');
+        var f = g[1].find(function(x) { return String(x.id) === tr.dataset.id; }), esp = dsEsperaInfo(f, g[0]);
+        var editables = esp && !dsDiaCerrado() ? [dsCampoEt(esp.ap, 'estado'), dsCampoEt(esp.sig, 'estado')] : [];
+        dsInputsDe(tr).forEach(function(el) { if (editables.indexOf(el.dataset.campo) < 0) el.disabled = true; });
+      });
+      dsPoblarCatalogos(tb, spec, g[0]);
+      if (dsSoloPropias()) dsBloquearEstadosAjenos(tb, g[1]);
+      dsPintarColores(tb);
+    });
+  }
+  (function() {   // la sección se pliega y se despliega; se recuerda en este navegador
+    var b = document.getElementById('dsEsperaTog'), cuerpo = document.getElementById('dsEsperaCuerpo');
+    if (!b || !cuerpo) return;
+    var abierta = true;
+    try { abierta = localStorage.getItem('dsEsperaAbierta') !== '0'; } catch (e) {}
+    var aplicar = function() { b.setAttribute('aria-expanded', abierta ? 'true' : 'false'); cuerpo.hidden = !abierta; };
+    aplicar();
+    b.addEventListener('click', function() {
+      abierta = !abierta; aplicar();
+      try { localStorage.setItem('dsEsperaAbierta', abierta ? '1' : '0'); } catch (e) {}
+    });
+  })();
 
   // Órdenes de otros equipos asignadas a este diseñador como prestado (solo en la vista del diseñador).
   function dsRenderPrestadas() {
@@ -2956,6 +3046,10 @@ window.addEventListener('unhandledrejection', function(ev) {
   }
 
   function dsTrasGuardar(tabla, tr, o) {
+    if (tr.isConnected && DS_ETAPAS_TABLA[tabla] && DS.diaData && DS.diaData.n6Separado &&
+        !!tr.closest('#dsTablaEspera') !== !!dsEsperaInfo(o, tabla)) {   // N6: entró o salió de Órdenes en espera
+      dsRenderTabla(tabla); dsRenderEspera(); dsRenderKpis(DS.diaData); return;
+    }
     if (!tr.isConnected) { // la tabla se redibujó mientras guardaba
       if (tabla === 'prestadas') dsRenderPrestadas(); else dsRenderTabla(tabla);
       dsRenderKpis(DS.diaData); return;
@@ -3077,7 +3171,7 @@ window.addEventListener('unhandledrejection', function(ev) {
   function dsOrdenConDatos(f) { return !!(f.orden || f.paciente || f.centro || f.producto); }
   var DS_KPIS = [
     {uno: 'Orden', varios: 'Órdenes', cuenta: function(f) { return true; }},
-    {uno: 'En proceso', varios: 'En proceso', cuenta: function(f) { return f.estado === 'Initiated'; }},
+    {uno: 'En proceso', varios: 'En proceso', cuenta: function(f) { return f.estado === 'Initiated' || f.estado === 'Reinitiated'; }},
     {uno: 'En espera', varios: 'En espera', cuenta: function(f) { return dsEsHold(f.estado); }},
     {uno: 'Aprobada', varios: 'Aprobadas', cuenta: function(f) { return f.estado === 'Approved' && dsQcFinal(f); }},
     {uno: 'Cancelada', varios: 'Canceladas', cuenta: dsEsCancelada, conDatos: true},
@@ -3745,6 +3839,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     if (dsAreaNombre() === DS_AREA_MATERIAL || dsEsRD()) dsRenderTabla('material');
     if (dsN6Separado()) { dsRenderTabla('tibar'); dsRenderTabla('dummy'); }
     dsRenderTabla('principal');
+    dsRenderEspera();
     if (DS.areaFormato === 'dual') dsRenderTabla('nightguard');
     dsRenderPrestadas();
     dsAplicarCierre();

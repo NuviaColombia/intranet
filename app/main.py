@@ -353,7 +353,10 @@ def init_db():
                       ("z_estado", "VARCHAR(100) DEFAULT ''"), ("x_estado", "VARCHAR(100) DEFAULT ''"),
                       ("n_estado", "VARCHAR(100) DEFAULT ''"),
                       # N6: notas de cada etapa (28-oct-2026, autorizado por Rosember)
-                      ("notas_etapas", "TEXT DEFAULT ''")):
+                      ("notas_etapas", "TEXT DEFAULT ''"),
+                      # N6: minutos de los ciclos anteriores de cada etapa (Changes; 28-oct-2026, autorizado por Rosember)
+                      ("min_previos", "FLOAT DEFAULT 0"), ("z_min_previos", "FLOAT DEFAULT 0"),
+                      ("x_min_previos", "FLOAT DEFAULT 0"), ("n_min_previos", "FLOAT DEFAULT 0")):
         if col not in columnas_design_ordenes:
             with engine.begin() as conn:
                 conn.execute(text(f"ALTER TABLE design_ordenes ADD COLUMN {col} {tipo}"))

@@ -29,6 +29,7 @@ CAMPOS_ORDEN = [
     "x_hora_inicio", "x_s_hold", "x_f_hold", "x_hold_minutos", "x_hora_fin", "x_qc", "x_qc_reporte",
     "n_hora_inicio", "n_s_hold", "n_f_hold", "n_hold_minutos", "n_hora_fin", "n_qc", "n_qc_reporte",
     "z_designer_id", "x_designer_id", "n_designer_id", "z_estado", "x_estado", "n_estado",
+    "min_previos", "z_min_previos", "x_min_previos", "n_min_previos",
     "art_start", "art_rtd",
 ]
 
@@ -750,6 +751,7 @@ def catalogo(db: Session, area_id: int, tipo: str) -> list[str]:
     estado_changes_ready_una_vez(db)
     material_change_una_vez(db)
     n6_separado_una_vez(db)
+    n6_reinitiated_una_vez(db)
     producto_prosthetic_scan_una_vez(db)
     prosthetic_scan_unico_n3_una_vez(db)
     productos_al_final_una_vez(db)
@@ -991,6 +993,40 @@ PRODUCTOS_N6_TABLA = {
 _n6_separado = {"ok": False}
 
 
+_n6_reinitiated = {"ok": False}
+
+
+def n6_reinitiated_una_vez(db: Session) -> None:
+    """Una sola vez (28-oct-2026): N6 tiene el estado «Reinitiated» (marca el F.Hold), justo después de Hold."""
+    from .models_design import DesignConexionRegla
+    if _n6_reinitiated["ok"]:
+        return
+    marca = "n6_reinitiated_2026_10_28"
+    try:
+        if not db.query(DesignConexionRegla).filter(DesignConexionRegla.tipo == "sistema", DesignConexionRegla.clave == marca).first():
+            n6 = db.query(DesignArea).filter(DesignArea.nombre == AREA_N6).first()
+            if not n6:
+                return
+            estados = (db.query(DesignCatalogo).filter(DesignCatalogo.area_id == n6.id, DesignCatalogo.tipo == "estado")
+                       .order_by(DesignCatalogo.orden, DesignCatalogo.id).all())
+            ya = next((c for c in estados if _normalizar_texto(c.valor) == _normalizar_texto(ESTADO_REINITIATED)), None)
+            if ya:
+                ya.activo = 1
+            else:
+                nuevo = DesignCatalogo(area_id=n6.id, tipo="estado", valor=ESTADO_REINITIATED, activo=1)
+                db.add(nuevo)
+                pos = next((i + 1 for i, c in enumerate(estados) if _normalizar_texto(c.valor) == "hold"), len(estados))
+                estados.insert(pos, nuevo)
+                for i, c in enumerate(estados, start=1):
+                    c.orden = i
+            db.add(DesignConexionRegla(tipo="sistema", clave=marca, creado_por="Sistema"))
+            db.commit()
+        _n6_reinitiated["ok"] = True
+    except Exception:
+        log.exception("Design: falló una actualización de datos; se deshace y queda registrado")
+        db.rollback()
+
+
 def tabla_base(tabla: str | None) -> str:
     return _TABLA_BASE.get(tabla or "", tabla or "")
 
@@ -1027,19 +1063,85 @@ def filtro_disenadores(ids: list[int]):
 # estado y este llena las horas de SU etapa (Initiated → Inicio, Hold → Start hold, Approved → Fin). La etapa ya no cambia sola.
 # (prefijo de columnas, columna del estado): Bite design usa las columnas de siempre.
 ETAPAS_N6 = (("", "estado"), ("z_", "z_estado"), ("x_", "x_estado"), ("n_", "n_estado"))
-COLUMNAS_HORAS_ETAPAS = tuple(p + k for p, _ in ETAPAS_N6 for k in ("hora_inicio", "s_hold", "f_hold", "hora_fin", "hold_minutos"))
+COLUMNAS_HORAS_ETAPAS = tuple(p + k for p, _ in ETAPAS_N6
+                              for k in ("hora_inicio", "s_hold", "f_hold", "hora_fin", "hold_minutos", "min_previos", "qc"))
+# Flujo de cada etapa (Rosember, 28-oct-2026): Ready to design → Initiated → Hold ⇄ Reinitiated → Approved. Skipped y Canceled
+# siempre. Changes solo en Órdenes en espera (etapa aprobada con su QC). Los managers y admins pueden saltarse el flujo.
+ESTADO_REINITIATED = "Reinitiated"
+FLUJO_N6 = {"": {"ready to design", "initiated"}, "ready to design": {"initiated"}, "changes": {"initiated"},
+            "initiated": {"hold", "approved"}, "hold": {"reinitiated"}, "reinitiated": {"hold", "approved"}}
+SIEMPRE_N6 = {"skipped", "canceled"}
+MSG_FLUJO_N6 = "Ese estado no sigue el flujo de la etapa: Ready to design → Initiated → Hold ⇄ Reinitiated → Approved."
+# Etapas de cada tabla, en orden (prefijo de columnas; Bite design usa las de siempre)
+ETAPAS_DE_TABLA = {TABLA_MATERIAL: ("", "z_", "n_"), TABLA_TIBAR: ("", "z_", "x_", "n_")}
+
+
+def transicion_n6_permitida(antes: str | None, nuevo: str | None, qc_etapa) -> bool:
+    """¿Un diseñador puede pasar la etapa de `antes` a `nuevo`? Changes solo desde una etapa aprobada con su QC (en espera)."""
+    a, n = _normalizar_texto(antes or ""), _normalizar_texto(nuevo or "")
+    if n == a or n in SIEMPRE_N6:
+        return True
+    if n == "changes":
+        return a in ("approved", "dr authorization") and bool(qc_etapa)
+    return n in FLUJO_N6.get(a, set())
+
+
+def en_espera_n6(o) -> bool:
+    """Órdenes en espera: la última etapa con estado está aprobada (o en Dr authorization) con su QC, y no es la última
+    (Nightguard design). Esperan a que otro departamento avise: Changes reabre la etapa; Ready to design sigue con la siguiente.
+    Quien llama revisa que sea N6 desde el 29-oct-2026."""
+    etapas = ETAPAS_DE_TABLA.get(o.tabla)
+    if not etapas:
+        return False
+    activas = [p for p in etapas if (getattr(o, p + "estado") or "").strip()]
+    if not activas or activas[-1] == etapas[-1]:
+        return False
+    p = activas[-1]
+    return _normalizar_texto(getattr(o, p + "estado")) in ("approved", "dr authorization") and bool(getattr(o, p + "qc"))
+
+
+def _min_etapa(ini, fin, s, f, previos) -> float:
+    """Minutos de diseño de una etapa: Fin − Inicio − tiempo en Hold (los Hold anteriores + el último). Sin Inicio o sin Fin, 0."""
+    if not ini or not fin:
+        return 0
+    fh = _fin_hold(s, f, fin)
+    return max(0, _entre(ini, fin) - (previos or 0) - (_entre(s, fh) if s and fh else 0))
 ESTADOS_ARRASTRE_ETAPA = ["hold", "dr authorization", "changes", "ready to design"]
 
 
 def horas_por_estado_etapas(actual: dict, nuevos: dict, anteriores: dict) -> dict:
-    """Horas que llenan los estados que cambian, cada uno en su etapa. `actual` = valores ya combinados (claves de columna),
-    `nuevos` = lo que llega, `anteriores` = el estado de cada etapa antes de guardar. «Dr authorization» cuenta como Hold."""
+    """Horas que llenan los estados que cambian, cada uno en su etapa (Rosember, 28-oct-2026). `actual` = valores ya combinados
+    (claves de columna), `nuevos` = lo que llega, `anteriores` = el estado de cada etapa antes de guardar.
+    Initiated → Inicio · Hold → S.Hold (un Hold nuevo suma el anterior a T. Hold) · Reinitiated → F.Hold · Approved → Fin.
+    Dr authorization no marca horas (lo pone el QC de Bite design). Changes (desde una etapa aprobada) reabre la etapa: su
+    tiempo de diseño se suma a min_previos, sus horas se limpian para el nuevo ciclo y su QC se desmarca (el reporte se queda)."""
+    ahora = ahora_colombia().strftime("%H:%M")
     cambios: dict = {}
     for p, col in ETAPAS_N6:
-        if col in nuevos and (nuevos[col] or "") != (anteriores.get(col) or ""):
-            est = ESTADO_HOLD if _normalizar_texto(nuevos[col] or "") == _normalizar_texto(ESTADO_DR_AUT) else nuevos[col]
-            base = {k: actual.get(p + k) for k in ("hora_inicio", "s_hold", "f_hold", "hora_fin", "hold_minutos")}
-            cambios.update({p + k: v for k, v in face_horas_por_estado(base, est).items()})
+        if col not in nuevos or (nuevos[col] or "") == (anteriores.get(col) or ""):
+            continue
+        e, antes = _normalizar_texto(nuevos[col] or ""), _normalizar_texto(anteriores.get(col) or "")
+        g = lambda k: actual.get(p + k)
+        s, f = g("s_hold") or "", g("f_hold") or ""
+        if e == "initiated":
+            if not g("hora_inicio"):
+                cambios[p + "hora_inicio"] = ahora
+        elif e == "hold":
+            if s and f:   # otro Hold: el anterior pasa a T. Hold y empieza uno nuevo
+                cambios.update({p + "hold_minutos": (g("hold_minutos") or 0) + _entre(s, f), p + "s_hold": ahora, p + "f_hold": ""})
+            elif not s:
+                cambios[p + "s_hold"] = ahora
+        elif e == "reinitiated":
+            if s and not f:
+                cambios[p + "f_hold"] = ahora
+        elif e == "approved":
+            if s and not f:
+                cambios[p + "f_hold"] = ahora   # de Hold directo a Approved: el Hold termina ahora
+            if not g("hora_fin"):
+                cambios[p + "hora_fin"] = ahora
+        elif e == "changes" and antes in ("approved", "dr authorization"):
+            cambios[p + "min_previos"] = (g("min_previos") or 0) + _min_etapa(g("hora_inicio"), g("hora_fin"), s, f, g("hold_minutos"))
+            cambios.update({p + "hora_inicio": "", p + "s_hold": "", p + "f_hold": "", p + "hora_fin": "", p + "hold_minutos": 0, p + "qc": False})
     return cambios
 
 
@@ -1461,6 +1563,7 @@ def catalogos_de_area(db: Session, area_id: int) -> dict[str, list[str]]:
     estado_changes_ready_una_vez(db)
     material_change_una_vez(db)
     n6_separado_una_vez(db)
+    n6_reinitiated_una_vez(db)
     producto_prosthetic_scan_una_vez(db)
     prosthetic_scan_unico_n3_una_vez(db)
     productos_al_final_una_vez(db)
@@ -1710,6 +1813,12 @@ def trasladar_holds(db: Session, ahora: datetime | None = None) -> int:
                 .filter(func.lower(DesignOrden.estado) == ESTADO_READY.lower(),
                         DesignOrden.fecha >= TRASLADO_READY_DESDE, DesignOrden.fecha <= cerrado_hasta)
                 .order_by(DesignOrden.fecha, DesignOrden.orden_visual, DesignOrden.id).all())
+    # N6 desde el 29-oct-2026: las Órdenes en espera (etapa aprobada con su QC) pasan al día siguiente hasta que continúan
+    ordenes += [o for o in (db.query(DesignOrden)
+                            .filter(DesignOrden.tabla.in_([TABLA_MATERIAL, TABLA_TIBAR]),
+                                    or_(DesignOrden.qc.is_(True), DesignOrden.z_qc.is_(True), DesignOrden.x_qc.is_(True)),
+                                    DesignOrden.fecha >= N6_SEPARADO_DESDE, DesignOrden.fecha <= cerrado_hasta).all())
+                if en_espera_n6(o)]
     # N6 desde el 29-oct-2026: si el estado de alguna etapa es de los que pasan al día siguiente, la orden también pasa
     ordenes += (db.query(DesignOrden)
                 .filter(DesignOrden.tabla.in_([TABLA_MATERIAL, TABLA_TIBAR]),
@@ -1799,7 +1908,7 @@ def mis_asignaciones(db: Session, user: Empleado) -> dict:
 # Qué está haciendo cada diseñador ahora, para saber quién está libre (pedido por Rosember el 12-oct-2026).
 # Grupos, en este orden: libre (sin casos por hacer, fuera de break/almuerzo), pausa (en break o almuerzo según su
 # Schedule), asignado (casos sin iniciar), ocupado (trabajando un caso) y ausente (ausencia registrada hoy).
-SEG_TRABAJANDO = {"initiated", "re-initiated", "meeting", "practice", "training"}
+SEG_TRABAJANDO = {"initiated", "re-initiated", "reinitiated", "meeting", "practice", "training"}   # Reinitiated: N6 (28-oct-2026)
 SEG_POR_HACER = {"ready to design", "hold", "order entered", "pickup received", "bite ready", "change ready", "changes ready",
                  "dr authorization", "changes"}
 # Hold (y "Dr authorization", que cuenta como Hold) va aparte de los casos asignados sin iniciar: el caso espera al doctor
@@ -2309,6 +2418,8 @@ def serializar_orden(o: DesignOrden) -> dict:
         "designerCorto": nombre_corto(o.designer),
         "designerPrestado": o.designer_prestado, "designerInhabilitado": _designer_inhabilitado(o),
         "notasN": notas_etapas_n(o),
+        "minPrevios": o.min_previos or 0, "zMinPrevios": o.z_min_previos or 0, "xMinPrevios": o.x_min_previos or 0,
+        "nMinPrevios": o.n_min_previos or 0,
         "zEstado": o.z_estado or "", "xEstado": o.x_estado or "", "nEstado": o.n_estado or "",
         "zDesignerId": o.z_designer_id, "xDesignerId": o.x_designer_id, "nDesignerId": o.n_designer_id,
         "zDesignerCorto": nombre_corto(o.z_designer), "xDesignerCorto": nombre_corto(o.x_designer),
@@ -3638,16 +3749,11 @@ def face_convertir_una_vez(db: Session) -> None:
 def material_minutos(o: DesignOrden) -> tuple[float, float, float]:
     """Material Change: (Bite, Zirconia, total) en minutos; una etapa sin Inicio o sin Fin cuenta 0. El total suma también
     las etapas «Zirconia» (x_, Over Ti-bar) y «Nightguard design» (n_) de N6 desde el 29-oct-2026."""
-    def etapa(ini, fin, s, f, previos):
-        if not ini or not fin:
-            return 0
-        fh = _fin_hold(s, f, fin)
-        return max(0, _entre(ini, fin) - (previos or 0) - (_entre(s, fh) if s and fh else 0))
-    b = etapa(o.hora_inicio, o.hora_fin, o.s_hold, o.f_hold, o.hold_minutos)
-    z = etapa(o.z_hora_inicio, o.z_hora_fin, o.z_s_hold, o.z_f_hold, o.z_hold_minutos)
-    otras = sum(etapa(getattr(o, p + "hora_inicio", ""), getattr(o, p + "hora_fin", ""), getattr(o, p + "s_hold", ""),
-                      getattr(o, p + "f_hold", ""), getattr(o, p + "hold_minutos", 0)) for p in ("x_", "n_"))
-    return b, z, b + z + otras
+    # cada etapa suma también los ciclos anteriores (Changes; min_previos, que no se muestra)
+    etapa = lambda p: (_min_etapa(getattr(o, p + "hora_inicio", ""), getattr(o, p + "hora_fin", ""), getattr(o, p + "s_hold", ""),
+                                  getattr(o, p + "f_hold", ""), getattr(o, p + "hold_minutos", 0)) + (getattr(o, p + "min_previos", 0) or 0))
+    b, z = etapa(""), etapa("z_")
+    return b, z, b + z + etapa("x_") + etapa("n_")
 
 
 def _menos_hold(o: DesignOrden, fin_menos_inicio: float, hold: float) -> float:

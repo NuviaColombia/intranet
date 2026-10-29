@@ -181,6 +181,15 @@
       <h3>Tiempos libres</h3>
       <div id="dsBreaks"></div>
     </div>
+
+    <!-- N6 (Rosember, 28-oct-2026): órdenes con una etapa aprobada y su QC, esperando a otro departamento -->
+    <div class="ds-panel ds-panel-espera" id="dsPanelEspera" style="display:none">
+      <div class="ds-panel-h"><h3><button type="button" class="ds-espera-tog" id="dsEsperaTog" aria-expanded="true" aria-controls="dsEsperaCuerpo"><span class="ds-espera-flecha" aria-hidden="true">▾</span> Órdenes en espera <span id="dsEsperaN" class="ds-espera-n"></span></button></h3></div>
+      <div id="dsEsperaCuerpo">
+        <p class="ds-prest-nota">Órdenes con una etapa aprobada y su QC que esperan a otro departamento. Changes vuelve a abrir la etapa aprobada; Ready to design sigue con la siguiente etapa.</p>
+        <div id="dsTablaEspera"></div>
+      </div>
+    </div>
     </div>
   </div>
 

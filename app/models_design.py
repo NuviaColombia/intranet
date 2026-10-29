@@ -159,6 +159,12 @@ class DesignOrden(Base):
     # Notas de cada etapa (Rosember, 28-oct-2026): JSON {"b": [{"id", "t", "f", "u"}], "z": [...], "x": [...], "n": [...]}
     # (b = Bite design, z = Zirconia design, x = Zirconia, n = Nightguard design; t = texto, f = fecha UTC, u = quién la escribió, no se muestra).
     notas_etapas: Mapped[str] = mapped_column(Text, default="")
+    # Minutos de diseño de los ciclos anteriores de cada etapa (Rosember, 28-oct-2026): al elegir Changes la etapa se reabre,
+    # su tiempo se guarda aquí y sus horas se registran de nuevo; el Total suma los dos. No se muestran en el Schedule.
+    min_previos: Mapped[float] = mapped_column(Float, default=0)
+    z_min_previos: Mapped[float] = mapped_column(Float, default=0)
+    x_min_previos: Mapped[float] = mapped_column(Float, default=0)
+    n_min_previos: Mapped[float] = mapped_column(Float, default=0)
 
     # N3 · Cirugías (pedido por Rosember el 13-oct-2026): tiempo de articulación. Las dos horas se escriben a mano; el
     # total (RTD − START) se calcula en pantalla. Pasadas las 2 h se cuenta en el Dashboard › Articulación.
