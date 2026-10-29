@@ -528,9 +528,8 @@
   <div class="dd-filtros">
     <div><label for="drGvMes">Mes</label><select id="drGvMes"></select></div>
     <div><label aria-hidden="true">&nbsp;</label><button type="button" class="btn" id="drGvAbrir">Abrir reporte</button></div>
-  </div>
-  {# Historial de una persona (Rosember, 28-oct-2026): por defecto el mes en curso #}
-  <div class="dd-filtros">
+    {# Historial de una persona (Rosember, 28-oct-2026): por defecto el mes en curso; en la misma fila, tras una línea #}
+    <div class="dr-gv-sep" aria-hidden="true"></div>
     <div><label for="drGvPer">Historial de una persona</label><select id="drGvPer" style="min-width:240px"><option value="">Cargando personas…</option></select></div>
     <div><label for="drGvPMes">Mes</label><select id="drGvPMes"></select></div>
     <div><label aria-hidden="true">&nbsp;</label><button type="button" class="btn" id="drGvPDesc">Descargar historial</button></div>

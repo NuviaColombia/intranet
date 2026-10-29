@@ -658,6 +658,7 @@
                 border-radius:12px; padding:14px; margin-bottom:16px; }
   .dd-filtros div { display:flex; flex-direction:column; gap:4px; }
   .dd-filtros label { font-size:11px; color:#4b5563; }
+  .dd-filtros .dr-gv-sep { align-self:stretch; width:1px; background:#d8dde3; margin:0 8px; }   /* reporte del mes | historial de una persona */
   .dd-filtros input, .dd-filtros select { padding:6px 8px; border:1px solid #d8dde3; border-radius:6px; font-size:13px; }
   .dd-kpis { display:grid; grid-template-columns:repeat(auto-fit, minmax(118px, 1fr)); gap:10px; margin-bottom:16px; }
   .dd-kpi { background:#fff; border:1px solid #d8dde3; border-radius:10px; padding:10px 16px; min-width:110px; }
