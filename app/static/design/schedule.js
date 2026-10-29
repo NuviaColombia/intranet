@@ -3372,7 +3372,8 @@ window.addEventListener('unhandledrejection', function(ev) {
   function dsOrdenConDatos(f) { return !!(f.orden || f.paciente || f.centro || f.producto); }
   var DS_KPIS = [
     {uno: 'Orden', varios: 'Órdenes', cuenta: function(f) { return true; }},
-    {uno: 'En proceso', varios: 'En proceso', cuenta: function(f) { return f.estado === 'Initiated' || f.estado === 'Reinitiated'; }},
+    // Bite ready (N3 Nightguard) todavía falta para terminar el caso: cuenta como En proceso (Rosember, 29-oct-2026)
+    {uno: 'En proceso', varios: 'En proceso', cuenta: function(f) { return f.estado === 'Initiated' || f.estado === 'Reinitiated' || dsNorm(f.estado) === 'bite ready'; }},
     {uno: 'En espera', varios: 'En espera', cuenta: function(f) { return dsEsHold(f.estado); }},
     {uno: 'Aprobada', varios: 'Aprobadas', cuenta: function(f) { return f.estado === 'Approved' && dsQcFinal(f); }},
     {uno: 'Cancelada', varios: 'Canceladas', cuenta: dsEsCancelada, conDatos: true},
