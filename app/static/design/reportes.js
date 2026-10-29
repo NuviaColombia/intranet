@@ -40,7 +40,7 @@
     sel.innerHTML = '<option value="">Cargando…</option>';
     fetch('/design/api/reportes/qc-disenadores?mes=' + $('drQcMes').value, {credentials: 'same-origin'})
       .then(function(r) { return r.json(); }).then(function(d) {
-        sel.innerHTML = d.disenadores.length ? '<option value="">Elige el diseñador…</option>' + d.disenadores.map(function(x) {
+        sel.innerHTML = d.disenadores.length ? '<option value="">Elige a la persona…</option>' + d.disenadores.map(function(x) {
           return '<option value="' + esc(x.clave) + '">' + esc(x.nombre) + ' (' + x.reportes + ' reporte' + (x.reportes === 1 ? '' : 's') + ')</option>'; }).join('')
           : '<option value="">Nadie tiene reportes de QC en este mes</option>';
       }).catch(function() { sel.innerHTML = '<option value="">No se pudo cargar</option>'; });
@@ -51,7 +51,7 @@
     if ($('drQcMes')) {
       $('drQcMes').addEventListener('change', qcDisenadores);
       $('drQcDesc').addEventListener('click', function() {
-        if (!$('drQcDis').value) { alert('Elige el diseñador.'); $('drQcDis').focus(); return; }
+        if (!$('drQcDis').value) { alert('Elige a la persona.'); $('drQcDis').focus(); return; }
         window.open('/design/reportes/qc-disenador?mes=' + $('drQcMes').value + '&d=' + encodeURIComponent($('drQcDis').value) + '&imprimir=1', '_blank', 'noopener');
       });
     }

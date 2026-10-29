@@ -1,6 +1,6 @@
 <!doctype html>
 {# Dashboard › Reportes › Reportes de QC por diseñador (Rosember, 28-oct-2026): documento para el manager, con la lista de
-   hallazgos de QC del mes como anexo. Texto dado por Rosember. Datos: services_design_reporte_qc.reporte. #}
+   hallazgos de QC del mes como anexo. Texto dado por Rosember, en redacción neutra (no se sabe si es hombre o mujer). Datos: services_design_reporte_qc.reporte. #}
 <html lang="es">
 <head>
 <meta charset="utf-8">
@@ -46,8 +46,8 @@
   <label>Mes <select id="mes" onchange="location.search='?mes='+this.value">
     {% for m in meses %}<option value="{{ m }}"{{ ' selected' if m == mes }}>{{ MESES[m[5:]|int - 1]|capitalize }} {{ m[:4] }}</option>{% endfor %}
   </select></label>
-  <label>Diseñador <select id="dis" onchange="location.search='?mes={{ mes }}&d='+encodeURIComponent(this.value)">
-    <option value="">Elige el diseñador…</option>
+  <label>Diseñador(a) <select id="dis" onchange="location.search='?mes={{ mes }}&d='+encodeURIComponent(this.value)">
+    <option value="">Elige a la persona…</option>
     {% for x in lista %}<option value="{{ x.clave }}"{{ ' selected' if x.clave == d }}>{{ x.nombre }} ({{ x.reportes }})</option>{% endfor %}
   </select></label>
   <span class="esp"></span>
@@ -56,14 +56,14 @@
 {% macro f(iso) %}{{ iso[8:10] }}/{{ iso[5:7] }}/{{ iso[:4] }}{% endmacro %}
 <div class="hoja">
   {% if not r %}<p class="vacio">{{ error }}</p>{% else %}
-  <p class="asunto"><b>Asunto:</b> Solicitud de seguimiento: desempeño en QC del diseñador {{ r.nombre }}</p>
+  <p class="asunto"><b>Asunto:</b> Solicitud de seguimiento: desempeño en QC de {{ r.nombre }}</p>
 
   <h2>Objetivo</h2>
-  <p>Por medio del presente reporte se solicita programar una conversación con el diseñador referenciado, debido al número de reportes registrados durante el control de calidad (QC) de su proceso de diseño.</p>
+  <p>Por medio del presente reporte se solicita programar una conversación con la persona referenciada, debido al número de reportes registrados durante el control de calidad (QC) de su proceso de diseño.</p>
 
   <h2>Antecedentes</h2>
   <ul>
-    <li><b>Diseñador:</b> {{ r.nombre }}</li>
+    <li><b>Diseñador(a):</b> {{ r.nombre }}</li>
     <li><b>Periodo evaluado:</b> {{ f(r.desde) }} a {{ f(r.hasta) }}</li>
     <li><b>Total de casos diseñados en el periodo:</b> {{ r.casos if r.casos else '—' }}</li>
     <li><b>Reportes registrados en QC:</b> {{ r.reportes }}{% if r.porcentaje is not none %} ({{ ('%.1f' % r.porcentaje).replace('.0', '').replace('.', ',') }} % del total){% endif %}</li>
@@ -72,14 +72,14 @@
 
   <h2>Puntos a tratar</h2>
   <ul>
-    <li>Reforzar con el diseñador la importancia de entregar un producto que cumpla con los estándares de calidad esperados.</li>
+    <li>Reforzar con la persona evaluada la importancia de entregar un producto que cumpla con los estándares de calidad esperados.</li>
     <li>Identificar oportunidades de mejora, incluyendo posibles necesidades de entrenamiento o falencias técnicas que esté presentando.</li>
     <li>Definir acciones concretas para evitar que la situación se repita.</li>
   </ul>
 
   <h2>Resultado esperado</h2>
-  <p>Como resultado de esta conversación, se espera levantar un acta con los compromisos acordados. El manager hará seguimiento a dicha acta para revisar periódicamente el avance del caso.</p>
-  <p>Quedo atenta a la confirmación de la fecha de la reunión.</p>
+  <p>Como resultado de esta conversación, se espera levantar un acta con los compromisos acordados. El/la manager hará seguimiento a dicha acta para revisar periódicamente el avance del caso.</p>
+  <p>Quedo atento(a) a la confirmación de la fecha de la reunión.</p>
 
   <div class="firma">
     <p>Cordialmente,</p>
