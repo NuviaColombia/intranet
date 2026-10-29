@@ -774,8 +774,11 @@
   #cmtPanelN3 .cmt-toggle-row { border-bottom-color:#e2e6ef; }
   #cmtPanelN3 .cmt-hist-item { background:#fff; border-color:#e2e6ef; }
   /* Comments usa todo el ancho de la pantalla */
-  #ov-comments .ds-overlay-inner { max-width:none; padding:24px 28px 70px; }
-  #ov-comments .ds-overlay-inner > h1 { padding-right:56px; }
+  #ov-comments .ds-overlay-inner { max-width:none; padding:16px 28px 70px; }
+  /* Sin la fila del título (Rosember, 28-oct-2026): las pestañas N3 / N2 quedan de primeras, alineadas con la ✕. El h1 sigue
+     (oculto a la vista) porque da el nombre de la pestaña del navegador y la etiqueta del panel para lectores de pantalla. */
+  #ov-comments .ds-overlay-inner > h1 { position:absolute; width:1px; height:1px; margin:0; padding:0; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+  #ov-comments .cmt-tabs { padding-right:56px; min-height:38px; align-items:center; }
   .cmt-tpl-item .cmt-tpl-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
   .cmt-tpl-item .cmt-tpl-name { font-weight:700; font-size:13px; flex:1; }
   .cmt-tpl-h { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
