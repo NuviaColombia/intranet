@@ -732,6 +732,17 @@
   .cmt-tabs { display:flex; gap:8px; margin-bottom:14px; }
   .cmt-tab { padding:8px 16px; border-radius:8px; border:1px solid #d8dde3; background:#fff; cursor:pointer; font-weight:600; font-size:13px; }
   .cmt-tab.activo { background:var(--ds-acento); color:var(--ds-acento-t); border-color:var(--ds-acento); }
+  /* Patient, Order #, Product, Arch size y Shape en la fila de las pestañas (Rosember, 29-oct-2026) */
+  .cmt-tabs { align-items:flex-end; flex-wrap:wrap; }
+  .cmt-campos { display:flex; align-items:flex-end; gap:8px; flex:1 1 560px; min-width:0; margin-left:10px; }
+  .cmt-campos[hidden] { display:none; }
+  .cmt-campos .cmt-field { min-width:0; }
+  .cmt-campos .cmt-f-pac { flex:2 1 170px; }
+  .cmt-campos .cmt-f-ord { flex:1 1 100px; }
+  .cmt-campos .cmt-f-prod { flex:3 1 220px; }
+  .cmt-campos .cmt-f-arch, .cmt-campos .cmt-f-shape { flex:1 1 100px; }
+  .cmt-campos input, .cmt-campos select { height:36px; background:#fff; border-color:#d8dde3; }
+  .cmt-tabs .cmt-tab { height:36px; }
   .cmt-wrap { display:flex; gap:16px; flex-wrap:wrap; }
   .cmt-col { flex:1; min-width:280px; }
   .cmt-section { background:#fff; border:1px solid #d8dde3; border-radius:10px; padding:12px; margin-bottom:12px; }
@@ -754,7 +765,7 @@
   /* Total moved vacío con implantes escritos: aviso */
   #cmtPanelN3 .cmt-field input.ro.cmt-aviso { border-color:#f59e0b; background:#fffbeb; color:#92400e; cursor:help; }
   /* Copiar Ready to mill con campos del formato vacíos */
-  #cmtPanelN3 .cmt-field .cmt-missing { border-color:#dc2626 !important; box-shadow:0 0 0 2px rgba(220,38,38,.15); }
+  #cmtPanelN3 .cmt-field .cmt-missing, #cmtCamposN3 .cmt-field .cmt-missing { border-color:#dc2626 !important; box-shadow:0 0 0 2px rgba(220,38,38,.15); }
   .cmt-toggle-row { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:6px 0; border-bottom:1px solid #eee; }
   .cmt-toggle-row .lbl { font-size:12px; flex:1; }
   .cmt-toggle-row input, .cmt-toggle-row select { width:150px; padding:5px 6px; border:1px solid #d8dde3; border-radius:6px; }

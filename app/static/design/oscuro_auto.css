@@ -57,7 +57,7 @@
 :root[data-ds-tema="oscuro"] .modulo-desc { color:var(--gris); }
 :root[data-ds-tema="oscuro"] .modulo.disabled:hover { box-shadow:0 1px 3px rgba(0,0,0,.08); }
 
-/* ---- static\design\schedule.css (797 reglas) ---- */
+/* ---- static\design\schedule.css (798 reglas) ---- */
 :root[data-ds-tema="oscuro"] .ds-overlay { background:#131925; }
 :root[data-ds-tema="oscuro"] .ds-overlay-close { background:#111827; color:#fff; border:none; box-shadow:0 3px 10px rgba(0,0,0,.3); }
 :root[data-ds-tema="oscuro"] .ds-overlay-close:hover { background:var(--ds-acento); color:var(--ds-acento-t); }
@@ -396,6 +396,7 @@
 :root[data-ds-tema="oscuro"] .dd-filtro-activo button { border:none; background:none; color:#ed8888; }
 :root[data-ds-tema="oscuro"] .cmt-tab { border:1px solid #323b4b; background:#131925; }
 :root[data-ds-tema="oscuro"] .cmt-tab.activo { background:var(--ds-acento); color:var(--ds-acento-t); border-color:var(--ds-acento); }
+:root[data-ds-tema="oscuro"] .cmt-campos input, :root[data-ds-tema="oscuro"] .cmt-campos select { background:#131925; border-color:#323b4b; }
 :root[data-ds-tema="oscuro"] .cmt-section { background:#131925; border:1px solid #323b4b; }
 :root[data-ds-tema="oscuro"] .cmt-section h4 { color:var(--ds-acento); }
 :root[data-ds-tema="oscuro"] .cmt-field label { color:#bbc1cc; }
@@ -408,7 +409,7 @@
 :root[data-ds-tema="oscuro"] .cmt-multi .pie { border-top:1px solid #30363f; }
 :root[data-ds-tema="oscuro"] .cmt-multi .pie button { background:none; color:var(--ds-acento); }
 :root[data-ds-tema="oscuro"] #cmtPanelN3 .cmt-field input.ro.cmt-aviso { border-color:#f59e0b; background:#342d0f; color:#f5bb98; }
-:root[data-ds-tema="oscuro"] #cmtPanelN3 .cmt-field .cmt-missing { border-color:#dc2626 !important; box-shadow:0 0 0 2px rgba(220,38,38,.15); }
+:root[data-ds-tema="oscuro"] #cmtPanelN3 .cmt-field .cmt-missing, :root[data-ds-tema="oscuro"] #cmtCamposN3 .cmt-field .cmt-missing { border-color:#dc2626 !important; box-shadow:0 0 0 2px rgba(220,38,38,.15); }
 :root[data-ds-tema="oscuro"] .cmt-toggle-row { border-bottom:1px solid #2e3544; }
 :root[data-ds-tema="oscuro"] .cmt-toggle-row input, :root[data-ds-tema="oscuro"] .cmt-toggle-row select { border:1px solid #323b4b; }
 :root[data-ds-tema="oscuro"] .cmt-outbox { background:#131925; border:1px solid #323b4b; }

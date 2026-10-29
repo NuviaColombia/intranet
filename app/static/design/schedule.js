@@ -6290,6 +6290,7 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
       document.getElementById('cmtPanelN3').style.display = 'none';
       document.getElementById('cmtPanelFaq').style.display = 'none';
     }
+    var camposN3 = document.getElementById('cmtCamposN3'); if (camposN3) camposN3.hidden = !CMT_PERM.n3;
   })();
   window.cmtMostrarTab = function(tab) {
     if (!CMT_PERM[tab]) return;
@@ -6297,6 +6298,7 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
     document.getElementById('cmtPanelFaq').style.display = tab === 'faq' ? '' : 'none';
     document.getElementById('cmtTabN3').classList.toggle('activo', tab === 'n3');
     document.getElementById('cmtTabFaq').classList.toggle('activo', tab === 'faq');
+    var campos = document.getElementById('cmtCamposN3'); if (campos) campos.hidden = tab !== 'n3';   // Patient, Order, Product, Arch size y Shape son de N3
     if (tab === 'faq') faqInit();
   };
 
@@ -6839,7 +6841,7 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
     document.getElementById('cmt_l27').innerHTML = '<option value="">—</option><option value="Si">Si</option><option value="No">No</option>';
     document.getElementById('cmtProdList').innerHTML = CMT_PRODUCTS_DEFAULTS.map(function(p) { return '<option value="'+p+'"></option>'; }).join('');
     // Sin sugerencias del navegador ("último uso" de pacientes y órdenes anteriores): el historial ya las guarda.
-    document.querySelectorAll('#cmtPanelN3 input').forEach(function(i) { i.setAttribute('autocomplete', 'off'); });
+    document.querySelectorAll('#cmtPanelN3 input, #cmtCamposN3 input').forEach(function(i) { i.setAttribute('autocomplete', 'off'); });
     cmtBarAdaptCargar();
     document.getElementById('cmt_b11').addEventListener('change', function() {
       if (this.value !== '__nueva__') { this._antes = this.value; return; }

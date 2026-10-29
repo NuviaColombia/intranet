@@ -214,32 +214,30 @@
 <div class="cmt-tabs">
   <button type="button" class="cmt-tab activo" id="cmtTabN3" onclick="cmtMostrarTab('n3')">N3</button>
   <button type="button" class="cmt-tab" id="cmtTabFaq" onclick="cmtMostrarTab('faq')">N2 / Face Design</button>
+  {# Patient, Order #, Product, Arch size y Shape van en la fila de las pestañas, junto a N3 (Rosember, 29-oct-2026). Mismos
+     campos y mismos id: solo cambió el lugar. Se ven solo con la pestaña N3 (cmtMostrarTab). #}
+  <div class="cmt-campos" id="cmtCamposN3">
+    <div class="cmt-field cmt-f-pac"><label for="cmt_b4">Patient</label><input id="cmt_b4" placeholder="Nombre del paciente" autocomplete="off"></div>
+    <div class="cmt-field cmt-f-ord"><label for="cmt_j4">Order #</label><input id="cmt_j4" placeholder="155273"></div>
+    <div class="cmt-field cmt-f-prod"><label for="cmt_b7">Product</label>
+      <input id="cmt_b7" list="cmtProdList" placeholder="Escribe o elige un producto…">
+      <datalist id="cmtProdList"></datalist>
+    </div>
+    <div class="cmt-field cmt-f-arch"><label for="cmt_d11">Arch size</label><select id="cmt_d11"></select></div>
+    <div class="cmt-field cmt-f-shape"><label for="cmt_n11">Shape</label><select id="cmt_n11"><option value="">—</option><option>Natural</option><option>Round</option><option>Square</option></select></div>
+  </div>
 </div>
 
 <div id="cmtPanelN3">
   <div class="cmt-wrap">
     <div class="cmt-col">
-      <div class="cmt-section"><h4>General information</h4>
-        <div class="cmt-grid c2">
-          <div class="cmt-field"><label for="cmt_b4">Patient</label><input id="cmt_b4" placeholder="Nombre del paciente" autocomplete="off"></div>
-          <div class="cmt-field"><label for="cmt_j4">Order #</label><input id="cmt_j4" placeholder="155273"></div>
-        </div>
-      </div>
-      <div class="cmt-section"><h4>Product</h4>
-        <div class="cmt-field"><label for="cmt_b7">Product</label>
-          <input id="cmt_b7" list="cmtProdList" placeholder="Escribe o elige un producto…">
-          <datalist id="cmtProdList"></datalist>
-        </div>
-      </div>
       <div class="cmt-section"><h4>Design details</h4>
         <div class="cmt-grid c3">
           <div class="cmt-field"><label for="cmt_b11">Bar adapt</label><select id="cmt_b11"><option value="">—</option></select></div>
-          <div class="cmt-field"><label for="cmt_d11">Arch size</label><select id="cmt_d11"></select></div>
           <div class="cmt-field"><label for="cmt_f11">TC Custom</label><select id="cmt_f11"></select></div>
+          <div class="cmt-field"><label for="cmt_l11">PC</label><input id="cmt_l11" placeholder="PC / DDI / InTech #"></div>
           <div class="cmt-field"><label for="cmt_h11">VDO lab</label><input id="cmt_h11" placeholder="-1"></div>
           <div class="cmt-field"><label for="cmt_j11">VDO Digital</label><input id="cmt_j11" placeholder="-0.8"></div>
-          <div class="cmt-field"><label for="cmt_l11">PC</label><input id="cmt_l11" placeholder="PC / DDI / InTech #"></div>
-          <div class="cmt-field"><label for="cmt_n11">Shape</label><select id="cmt_n11"><option value="">—</option><option>Natural</option><option>Round</option><option>Square</option></select></div>
         </div>
       </div>
       <div class="cmt-section"><h4>Implants Upper</h4>
