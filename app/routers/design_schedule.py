@@ -1874,6 +1874,8 @@ def _orden_para_notas(db: Session, user: Empleado, orden_id: int):
     gestor = sd.gestiona_equipo(user, team)
     if not gestor:
         propia = user.id in sd.disenadores_de_orden(o) and (team.id in sd.equipos_como_designer(db, user) or sd.es_orden_prestada_a(db, o, user))
+        if propia and sd.n6_por_etapas(team.area.nombre, o.fecha, o.tabla) and not sd.ve_orden_n6(o, user.id):
+            propia = False   # N6: solo el diseñador de la etapa en curso
         if not propia:
             raise HTTPException(403, "Solo puedes ver y escribir notas en las órdenes que tienes asignadas.")
     return o, gestor
@@ -1939,6 +1941,8 @@ def api_actualizar_orden(orden_id: int, payload: OrdenIn,
     if solo_propia:
         # Un diseñador edita sus órdenes: las de su equipo y las de otro equipo que se lo pidió prestado.
         propia = user.id in sd.disenadores_de_orden(orden_existente) and (   # N6: también el de otra etapa
+            not sd.n6_por_etapas(team.area.nombre, orden_existente.fecha, orden_existente.tabla)
+            or sd.ve_orden_n6(orden_existente, user.id)) and (   # N6: solo el de la etapa en curso
             team.id in sd.equipos_como_designer(db, user) or sd.es_orden_prestada_a(db, orden_existente, user))
         if not propia:
             raise HTTPException(403, "Solo puedes editar las órdenes que tienes asignadas.")
@@ -1997,7 +2001,7 @@ def api_actualizar_orden(orden_id: int, payload: OrdenIn,
     if sep and solo_propia:   # N6: un diseñador solo cambia el estado de la etapa en la que está asignado (Rosember, 28-oct-2026)
         for p, col in sd.ETAPAS_N6:
             if (col in datos and (datos[col] or "") != (getattr(orden_existente, col) or "")
-                    and getattr(orden_existente, p + "designer_id") != user.id):
+                    and not sd.puede_estado_etapa(orden_existente, user.id, p)):
                 raise HTTPException(403, "Solo puedes cambiar el estado de la etapa en la que estás asignado.")
     if sep and solo_propia:   # N6: el diseñador sigue el flujo de cada etapa (el manager y el admin pueden corregir)
         for p, col in sd.ETAPAS_N6:

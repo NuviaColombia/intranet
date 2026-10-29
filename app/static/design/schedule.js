@@ -967,6 +967,21 @@ window.addEventListener('unhandledrejection', function(ev) {
     if (i === et.length - 1 || !(e === 'approved' || e === 'dr authorization') || !f[dsCampoEt(p, 'qc')]) return null;
     return {ap: p, sig: et[i + 1]};
   }
+  // Etapa en curso (igual que etapa_actual_n6): la última con estado; sin estados, Bite design; en espera, la siguiente
+  function dsEtapaActual(f, tabla) {
+    var et = DS_ETAPAS_TABLA[tabla] || [''], act = et.filter(function(p) { return String(f[dsCampoEt(p, 'estado')] || '').trim(); });
+    if (!act.length) return et[0];
+    var esp = dsEsperaInfo(f, tabla);
+    return esp ? esp.sig : act[act.length - 1];
+  }
+  // ¿Esta orden le aparece a este diseñador? N6 por etapas: solo al de la etapa en curso, y nunca si está en Órdenes en espera
+  // (esas las ven el aprobador y la persona a cargo; Rosember, 28-oct-2026)
+  function dsOrdenEsMia(o, yo) {
+    if (DS_ETAPAS_TABLA[o.tabla] && DS.diaData && DS.diaData.n6Separado) {
+      return !dsEsperaInfo(o, o.tabla) && o[dsCampoEt(dsEtapaActual(o, o.tabla), 'designerId')] === yo;
+    }
+    return dsDisenadoresDe(o).indexOf(yo) >= 0;
+  }
   // ¿Se ofrece este estado en esta lista? (solo N6 por etapas; las demás tablas no cambian)
   function dsEstadoEnFlujo(sel, tabla, v) {
     if (!DS_ETAPAS_TABLA[tabla] || !(DS.diaData && DS.diaData.n6Separado)) return true;
@@ -2650,7 +2665,7 @@ window.addEventListener('unhandledrejection', function(ev) {
   function dsRenderEspera() {
     var panel = document.getElementById('dsPanelEspera'), cont = document.getElementById('dsTablaEspera');
     if (!panel || !cont) return;
-    var activa = !!(DS.diaData && DS.diaData.n6Separado);
+    var activa = !!(DS.diaData && DS.diaData.n6Separado && !(DS.diaData.soloPropias && !DS.diaData.soloEditaPropias));   // solo aprobador / a cargo
     panel.style.display = activa ? '' : 'none';
     if (!activa) { cont.innerHTML = ''; return; }
     var grupos = ['material', 'tibar'].map(function(t) { return [t, (DS.diaData[t] || []).filter(function(f) { return dsEsperaInfo(f, t); })]; })
@@ -3987,7 +4002,7 @@ window.addEventListener('unhandledrejection', function(ev) {
         if (antes && antes.actualizadoEn && o.actualizadoEn && o.actualizadoEn < antes.actualizadoEn) return;   // aviso atrasado: ya se ve algo más nuevo
         o = dsConservarExtras(antes, o);
         quitar(o.id);
-        if (tablas.indexOf(o.tabla) < 0 || (solo && dsDisenadoresDe(o).indexOf(yo) < 0)) return;
+        if (tablas.indexOf(o.tabla) < 0 || (solo && !dsOrdenEsMia(o, yo))) return;
         dia[o.tabla].push(o);
       });
     });

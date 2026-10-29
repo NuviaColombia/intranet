@@ -1100,6 +1100,31 @@ def en_espera_n6(o) -> bool:
     return _normalizar_texto(getattr(o, p + "estado")) in ("approved", "dr authorization") and bool(getattr(o, p + "qc"))
 
 
+def etapa_actual_n6(o) -> str:
+    """La etapa en curso (prefijo de columnas): la última con estado; sin estados, Bite design; en Órdenes en espera, la
+    siguiente (la que va a continuar)."""
+    etapas = ETAPAS_DE_TABLA.get(o.tabla, ("",))
+    activas = [p for p in etapas if (getattr(o, p + "estado") or "").strip()]
+    if not activas:
+        return etapas[0]
+    if en_espera_n6(o):
+        return etapas[etapas.index(activas[-1]) + 1]
+    return activas[-1]
+
+
+def ve_orden_n6(o, empleado_id: int) -> bool:
+    """N6 (Rosember, 28-oct-2026): un diseñador ve una orden de Material Change u Over Ti-bar solo si es el de la etapa en curso.
+    Las Órdenes en espera no las ve ningún diseñador: solo el aprobador y la persona a cargo (vista de manager)."""
+    if en_espera_n6(o):
+        return False
+    return getattr(o, etapa_actual_n6(o) + "designer_id", None) == empleado_id
+
+
+def puede_estado_etapa(o, empleado_id: int, prefijo: str) -> bool:
+    """¿El diseñador puede cambiar el estado de esa etapa? Solo el de esa etapa (las Órdenes en espera las maneja el manager)."""
+    return getattr(o, prefijo + "designer_id", None) == empleado_id
+
+
 def _min_etapa(ini, fin, s, f, previos) -> float:
     """Minutos de diseño de una etapa: Fin − Inicio − tiempo en Hold (los Hold anteriores + el último). Sin Inicio o sin Fin, 0."""
     if not ini or not fin:
@@ -2477,6 +2502,9 @@ def datos_dia(db: Session, team: DesignTeam, fecha: date, solo_empleado_id: int 
         qb = qb.filter(DesignBreak.empleado_id.in_([solo_empleado_id] + ([team.manager_id] if team.manager_id else [])))
         qd = qd.filter(DesignTeamDesigner.empleado_id == solo_empleado_id)
     ordenes = q.order_by(DesignOrden.orden_visual, DesignOrden.id).all()
+    if solo_empleado_id is not None and n6_separado(team.area.nombre, fecha):
+        # N6 (28-oct-2026): en Material Change y Over Ti-bar el diseñador solo ve las órdenes en las que le toca la etapa en curso
+        ordenes = [o for o in ordenes if not es_tabla_etapas(o.tabla) or ve_orden_n6(o, solo_empleado_id)]
     if n6_separado(team.area.nombre, fecha):
         # una orden que llegó a un día de N6 con cuatro tablas a su tabla de antes (Dummy en Cirugías, Over Ti-bar en
         # Material Change) pasa a la suya; el flujo es el mismo, así que no cambia nada más
@@ -2717,6 +2745,7 @@ def ordenes_prestadas(db: Session, empleado_id: int, fecha: date) -> list[dict]:
              .filter(filtro_disenador(empleado_id), DesignOrden.fecha == fecha,
                      DesignOrden.team_id.notin_(propios), DesignOrden.team_id.notin_(_equipos_support_ids(db)))
              .order_by(DesignOrden.team_id, DesignOrden.orden_visual, DesignOrden.id).all())
+    filas = [o for o in filas if not n6_por_etapas(o.team.area.nombre, o.fecha, o.tabla) or ve_orden_n6(o, empleado_id)]   # N6: etapa en curso
     return [{**serializar_orden(o), "equipo": o.team.nombre, "teamId": o.team_id,
              "area": o.team.area.nombre, "formato": o.team.area.formato} for o in filas]
 

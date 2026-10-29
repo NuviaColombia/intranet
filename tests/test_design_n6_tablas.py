@@ -81,6 +81,18 @@ class N6CuatroTablas(unittest.TestCase):
         self.assertEqual([x["puedeBorrar"] for x in v["b"]], [True]) and self.assertNotIn("u", v["b"][0])   # sin autor; borra la suya
         self.assertTrue(sd.notas_etapas_vista(o, O(id=99), True)["n"][0]["puedeBorrar"])   # el manager borra cualquiera
 
+    def test_solo_el_disenador_de_la_etapa_en_curso_ve_la_orden(self):
+        from types import SimpleNamespace as O
+        base = dict(tabla="tibar", estado="", qc=False, z_estado="", z_qc=False, x_estado="", x_qc=False, n_estado="", n_qc=False,
+                    designer_id=1, z_designer_id=2, x_designer_id=3, n_designer_id=4)
+        o = O(**base)
+        self.assertTrue(sd.ve_orden_n6(o, 1) and not sd.ve_orden_n6(o, 2))   # sin estados: Bite design
+        o = O(**{**base, "estado": "Approved", "z_estado": "Initiated"})
+        self.assertTrue(sd.ve_orden_n6(o, 2) and not sd.ve_orden_n6(o, 1))   # Zirconia design en curso
+        o = O(**{**base, "estado": "Dr authorization", "qc": True})
+        self.assertFalse(any(sd.ve_orden_n6(o, i) for i in (1, 2, 3, 4)))   # en espera: ningún diseñador (aprobador / a cargo)
+        self.assertTrue(sd.puede_estado_etapa(O(**base), 2, "z_") and not sd.puede_estado_etapa(O(**base), 2, ""))
+
     def test_produccion_como_hoy(self):
         self.assertEqual(sd.tipo_produccion("tibar", ""), "mc")
         self.assertEqual(sd.tipo_produccion("dummy", ""), "sx")
