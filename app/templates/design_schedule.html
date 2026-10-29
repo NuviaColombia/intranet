@@ -523,10 +523,16 @@
     <div><label aria-hidden="true">&nbsp;</label><button type="button" class="btn" id="drAbrir">Abrir reporte</button></div>
   </div></div>
 {# Reportes GeoVictoria (Rosember, 22-oct-2026): llegadas tarde del mes, desde GeoVictoria (routers/design_geovictoria.py) #}
-<div class="dd-panel"><div class="dd-panel-cab"><h3>Reportes GeoVictoria</h3><span style="font-size:12px;color:#4b5563">Llegadas tarde del mes · se guarda solo al cerrar cada mes</span></div>
+<div class="dd-panel"><div class="dd-panel-cab"><h3>Reportes GeoVictoria</h3><span style="font-size:12px;color:#4b5563">Llegadas tarde del mes de todo Design o el historial de una persona</span></div>
   <div class="dd-filtros">
     <div><label for="drGvMes">Mes</label><select id="drGvMes"></select></div>
     <div><label aria-hidden="true">&nbsp;</label><button type="button" class="btn" id="drGvAbrir">Abrir reporte</button></div>
+  </div>
+  {# Historial de una persona (Rosember, 28-oct-2026): por defecto el mes en curso #}
+  <div class="dd-filtros">
+    <div><label for="drGvPer">Historial de una persona</label><select id="drGvPer" style="min-width:240px"><option value="">Cargando personas…</option></select></div>
+    <div><label for="drGvPMes">Mes</label><select id="drGvPMes"></select></div>
+    <div><label aria-hidden="true">&nbsp;</label><button type="button" class="btn" id="drGvPDesc">Descargar historial</button></div>
   </div></div>
 <div class="dd-panel"><div class="dd-panel-cab"><h3>Reportes subidos</h3><span style="font-size:12px;color:#4b5563">PDF de hasta 15 MB</span></div>
   <div class="dd-filtros">

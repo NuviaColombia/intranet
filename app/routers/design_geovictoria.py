@@ -36,6 +36,37 @@ def pagina_reporte(request: Request, mes: str = "", actualizar: int = 0, user: E
         "MESES": sr.MESES["es"], "consultado": _hora_colombia((r or {}).get("generado"))})
 
 
+@router.get("/design/reportes/geovictoria/persona")
+def pagina_reporte_persona(request: Request, id: int = 0, mes: str = "", imprimir: int = 0, user: Empleado = Depends(require_admin),
+                           db: Session = Depends(get_db)):
+    """Historial de llegadas tarde de una persona en el mes (por defecto el en curso), para descargar en PDF."""
+    from .. import services_design_reportes as sr
+    meses = sr.meses_disponibles()
+    mes = mes if mes in meses else meses[0]
+    ahora = sd.ahora_colombia().replace(tzinfo=None)
+    r, error, personas = None, "", []
+    try:
+        personas = sgv.personas_reporte(db)
+        r = sgv.historial_persona(db, id, mes, ahora)
+    except ValueError as e:
+        error = str(e)
+    except Exception as e:  # noqa: BLE001
+        error = f"No se pudo consultar GeoVictoria: {e}"
+    return templates.TemplateResponse(request, "design_reporte_geovictoria_persona.html", {
+        "user": user, "r": r, "id": id, "mes": mes, "meses": meses, "personas": personas, "error": error, "imprimir": bool(imprimir and r),
+        "mesTxt": sr.MESES["es"][int(mes[5:]) - 1] + " " + mes[:4], "generado": ahora.strftime("%d/%m/%Y %H:%M"),
+        "MESES": sr.MESES["es"], "consultado": _hora_colombia((r or {}).get("generado"))})
+
+
+@router.get("/design/api/geovictoria/personas")
+def api_personas(user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    """Personas de Design en GeoVictoria, para elegir de quién descargar el historial de llegadas tarde."""
+    try:
+        return {"personas": sgv.personas_reporte(db)}
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(400, f"No se pudo consultar GeoVictoria: {e}")
+
+
 def _hora_colombia(iso_utc: str | None) -> str:
     """'2026-10-28T20:15:00Z' (UTC) → '28/10 15:15' (Colombia)."""
     from datetime import datetime, timedelta

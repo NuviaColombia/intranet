@@ -1,0 +1,124 @@
+<!doctype html>
+{# Dashboard › Reportes › Reportes GeoVictoria › Historial de una persona (Rosember, 28-oct-2026): llegadas tarde de una
+   persona en el mes, para descargar en PDF. Datos: services_design_geovictoria.historial_persona. #}
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Llegadas tarde · {{ r.nombre if r else 'Historial' }} · {{ mesTxt|capitalize }}</title>
+<style>
+  :root { --tinta:#1f1f1f; --gris:#6b6b6b; --muted:#8a8a8a; --borde:#e4e4e1; --fondo:#fafaf8; --azul:#2a78d6; --naranja:#eb6834; --rojo:#d64545; }
+  * { box-sizing:border-box; }
+  html { background:#eceae6; }
+  body { margin:0; font-family:"Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif; color:var(--tinta); font-size:13px; line-height:1.45; }
+  .barra { position:sticky; top:0; z-index:5; display:flex; gap:8px; align-items:center; flex-wrap:wrap; padding:10px 16px; background:#1b2333; color:#fff; }
+  .barra a, .barra button, .barra select { font:inherit; font-size:13px; padding:6px 12px; border-radius:8px; border:1px solid #3a465c; background:#26314a; color:#fff; text-decoration:none; cursor:pointer; }
+  .barra .prim { background:#2a78d6; border-color:#2a78d6; }
+  .barra .on { background:#fff; color:#1b2333; }
+  .barra .esp { flex:1; }
+  .hoja { max-width:880px; margin:18px auto; background:#fff; padding:36px 40px; box-shadow:0 2px 12px rgba(0,0,0,.08); }
+  h1 { font-size:24px; margin:0 0 4px; }
+  h2 { font-size:16px; margin:26px 0 4px; break-after:avoid; page-break-after:avoid; }
+  h2 + .nota { break-after:avoid; page-break-after:avoid; }
+  .sub, .nota { color:var(--gris); margin:0 0 12px; }
+  .kpis { display:grid; grid-template-columns:repeat(4, 1fr); gap:12px; margin:18px 0 6px; }
+  .kpi { border:1px solid var(--borde); border-radius:10px; padding:12px 14px; }
+  .kpi .l { color:var(--gris); font-size:12px; min-height:32px; }
+  .kpi .v { font-size:26px; font-weight:700; line-height:1.15; }
+  .kpi .v small { font-size:18px; color:var(--muted); font-weight:600; }
+  .kpi .s { color:var(--muted); font-size:11.5px; }
+  .hall { border:1px solid var(--borde); border-left:4px solid #c9c9c4; border-radius:8px; padding:10px 14px; margin:8px 0; background:var(--fondo); page-break-inside:avoid; }
+  .hall.fuerte { border-left-color:var(--rojo); }
+  .hall .a { color:var(--gris); margin-top:4px; }
+  .caja { border:1px solid var(--borde); border-radius:10px; padding:14px 16px; background:var(--fondo); margin:8px 0; page-break-inside:avoid; }
+  .barras { display:grid; grid-template-columns:max-content 1fr; gap:6px 12px; align-items:center; }
+  .barras .n { text-align:right; white-space:nowrap; }
+  .pista { display:flex; align-items:center; gap:8px; min-width:0; }
+  .bar { height:14px; border-radius:0 4px 4px 0; display:flex; gap:2px; min-width:4px; }
+  .bar i { display:block; height:100%; }
+  .bar i:last-child { border-radius:0 4px 4px 0; }
+  .eje { border-left:1px solid #b9b9b4; }
+  .lbl { white-space:nowrap; font-size:12.5px; }
+  .lbl span { color:var(--muted); }
+  .leyenda { display:flex; gap:16px; margin-bottom:10px; font-size:12.5px; }
+  .leyenda b { display:inline-block; width:12px; height:12px; border-radius:3px; vertical-align:-2px; margin-right:5px; }
+  .tend { display:flex; align-items:flex-end; gap:18px; height:170px; padding:18px 6px 0; border-bottom:1px solid #b9b9b4; }
+  .tend > div { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; }
+  .tend .col { width:24px; background:var(--azul); border-radius:4px 4px 0 0; min-height:2px; }
+  .tend .p { font-size:12px; margin-bottom:4px; }
+  .tend-x { display:flex; gap:18px; padding:4px 6px 0; }
+  .tend-x span { flex:1; text-align:center; color:var(--muted); font-size:11.5px; }
+  table { width:100%; border-collapse:collapse; font-size:12px; }
+  th { text-align:left; color:var(--gris); font-weight:600; padding:6px 8px; border-bottom:1.5px solid #c9c9c4; }
+  td { padding:6px 8px; border-bottom:1px solid var(--borde); vertical-align:top; }
+  tr { page-break-inside:avoid; }
+  td.num, th.num { text-align:right; white-space:nowrap; }
+  .tag { display:inline-block; font-size:11px; font-weight:700; padding:1px 7px; border-radius:999px; color:#fff; }
+  .tag.LAB { background:var(--naranja); } .tag.DOC { background:var(--azul); }
+  .vacio { color:var(--gris); font-style:italic; }
+  ul.metodo { padding-left:18px; } ul.metodo li { margin:4px 0; }
+  .pie { color:var(--muted); font-size:11.5px; margin-top:22px; border-top:1px solid var(--borde); padding-top:8px; }
+  @media (max-width:760px) { .hoja { padding:20px 16px; margin:0; } .kpis { grid-template-columns:1fr 1fr; } .tablas { overflow-x:auto; } }
+  @page { size:letter; margin:14mm; }
+  @media print {
+    html, body { background:#fff; }
+    .barra { display:none; }
+    .hoja { box-shadow:none; margin:0; padding:0; max-width:none; }
+    * { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  }
+</style>
+</head>
+<body>
+<div class="barra">
+  <a href="/design?panel=dashboard">← Volver al Dashboard</a>
+  <label>Persona <select id="per" onchange="ir()">
+    {% for p in personas %}<option value="{{ p.id }}"{{ ' selected' if p.id == id }}>{{ p.nombre }}</option>{% endfor %}
+  </select></label>
+  <label>Mes <select id="mes" onchange="ir()">
+    {% for m in meses %}<option value="{{ m }}"{{ ' selected' if m == mes }}>{{ MESES[m[5:]|int - 1]|capitalize }} {{ m[:4] }}</option>{% endfor %}
+  </select></label>
+  <span class="esp"></span>
+  <a href="?id={{ id }}&mes={{ mes }}" title="Vuelve a consultar GeoVictoria ahora">⟳ Actualizar</a>
+  <button type="button" class="prim" onclick="window.print()">Descargar PDF</button>
+</div>
+{% macro dur(m) %}{% if m >= 60 %}{{ (m // 60)|int }} h{% if m % 60 %} {{ (m % 60)|int }} min{% endif %}{% else %}{{ m|int }} min{% endif %}{% endmacro %}
+{% set DIAS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'] %}
+<div class="hoja">
+  {% if error %}<h1>Llegadas tarde · {{ mesTxt|capitalize }}</h1><p class="vacio">{{ error }}</p>{% else %}
+  <h1>Llegadas tarde · {{ r.nombre }}</h1>
+  <p class="sub">{{ mesTxt|capitalize }} · del {{ r.desde[8:10] }}/{{ r.desde[5:7] }} al {{ r.hasta[8:10] }}/{{ r.hasta[5:7] }}{{ ' (mes en curso: hasta hoy)' if not r.cerrado }}
+    {% if r.equipo %} · {{ r.equipo }}{% if r.area %} ({{ r.area }}){% endif %}{% endif %}{% if r.manager %} · Manager: {{ r.manager }}{% endif %}
+    · consultado en GeoVictoria a las {{ consultado }}.</p>
+
+  <div class="kpis">
+    <div class="kpi"><div class="l">Llegadas tarde</div><div class="v">{{ r.veces }}</div><div class="s">días con atraso en la entrada</div></div>
+    <div class="kpi"><div class="l">Tiempo de atraso</div><div class="v">{{ dur(r.minutos) }}</div><div class="s">sumando todos los atrasos</div></div>
+    <div class="kpi"><div class="l">Promedio</div><div class="v">{{ dur(r.promedio) }}</div><div class="s">por llegada tarde · mayor {{ dur(r.max) }}</div></div>
+    <div class="kpi"><div class="l">Más de 15 minutos</div><div class="v">{{ r.masDe15 }}</div><div class="s">llegadas con atraso fuerte</div></div>
+  </div>
+
+  <h2>Historial del mes</h2>
+  {% if r.dias %}
+  <div class="caja tablas"><table>
+    <thead><tr><th>Fecha</th><th>Día</th><th class="num">Inicio del turno</th><th class="num">Entrada</th><th class="num">Tiempo tarde</th></tr></thead>
+    <tbody>{% for d in r.dias %}{% set f = d.fecha %}<tr><td><b>{{ f[8:10] }}/{{ f[5:7] }}/{{ f[:4] }}</b></td><td>{{ DIAS[d.dia] }}</td>
+      <td class="num">{{ d.turno or '—' }}</td><td class="num">{{ d.entrada or '—' }}</td>
+      <td class="num"{% if d.min > 15 %} style="color:var(--rojo);font-weight:700"{% endif %}>{{ dur(d.min) }}</td></tr>{% endfor %}</tbody>
+  </table></div>
+  {% else %}<p class="vacio">No llegó tarde en este periodo.</p>{% endif %}
+
+  <h2>Método y límites</h2>
+  <ul class="metodo">
+    <li><b>Fuente:</b> GeoVictoria (libro de asistencia de Colombia): atraso en la entrada de cada día, comparado con la hora de inicio del turno asignado. Es el mismo dato del reporte del mes.</li>
+    <li><b>Correcciones:</b> se consulta GeoVictoria cada vez que se abre, así que los atrasos corregidos o justificados allá ya no salen.</li>
+  </ul>
+  {% endif %}
+  <div class="pie">Generado el {{ generado }} (Colombia) · Nuvia Design Colombia</div>
+</div>
+<script>
+  function ir() { location.search = '?id=' + document.getElementById('per').value + '&mes=' + document.getElementById('mes').value; }
+  {% if imprimir %}addEventListener('load', function() { setTimeout(function() { window.print(); }, 300); });{% endif %}
+</script>
+<script src="/static/design/esc.js?v={{ ds_estaticos_v }}" defer></script>{# Esc = ir al Schedule #}
+</body>
+</html>

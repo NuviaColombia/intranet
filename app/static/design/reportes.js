@@ -27,6 +27,8 @@
       if (!$('drMes').options.length) { $('drMes').innerHTML = ops; $('drMesSub').innerHTML = ops; }
       var gv = $('drGvMes');   // Reportes GeoVictoria: por defecto el mes que ya cerró
       if (gv && !gv.options.length) { gv.innerHTML = ops; if (gv.options.length > 1) gv.selectedIndex = 1; }
+      var gp = $('drGvPMes');  // historial de una persona: por defecto el mes en curso
+      if (gp && !gp.options.length) gp.innerHTML = ops;
       pintar(d.subidos);
     }).catch(function() { res('No se pudieron cargar los reportes.', true); });
   }
@@ -36,6 +38,18 @@
     if ($('drGvAbrir')) $('drGvAbrir').addEventListener('click', function() {
       window.open('/design/reportes/geovictoria?mes=' + $('drGvMes').value, '_blank', 'noopener');
     });
+    if ($('drGvPer')) {
+      fetch('/design/api/geovictoria/personas', {credentials: 'same-origin'})
+        .then(function(r) { return r.json().then(function(d) { if (!r.ok) throw new Error(d.detail || ''); return d; }); })
+        .then(function(d) {
+          $('drGvPer').innerHTML = '<option value="">Elige la persona…</option>' + d.personas.map(function(p) {
+            return '<option value="' + p.id + '">' + esc(p.nombre) + '</option>'; }).join('');
+        }).catch(function() { $('drGvPer').innerHTML = '<option value="">GeoVictoria no respondió</option>'; });
+      $('drGvPDesc').addEventListener('click', function() {
+        if (!$('drGvPer').value) { alert('Elige la persona del historial.'); $('drGvPer').focus(); return; }
+        window.open('/design/reportes/geovictoria/persona?id=' + $('drGvPer').value + '&mes=' + $('drGvPMes').value + '&imprimir=1', '_blank', 'noopener');
+      });
+    }
     $('drAbrir').addEventListener('click', function() {
       window.open('/design/reportes/mensual?mes=' + $('drMes').value + '&lang=' + $('drLang').value, '_blank', 'noopener');
     });

@@ -692,6 +692,68 @@ def _min(hhmm: str) -> int:
         return 0
 
 
+def _dias_tarde(f: dict) -> list[dict]:
+    """De una fila de GetConsolidatedColombia: los días con atraso en la entrada [{"fecha", "min"}]."""
+    dias = []
+    for d in f.get("SpecialDays") or []:
+        if str(d.get("HasDelay")) != "True":
+            continue
+        m = _min(d.get("Delay"))
+        fd = _dt(d.get("Date"))
+        if m > 0 and fd:
+            dias.append({"fecha": fd.date().isoformat(), "min": m})
+    return dias
+
+
+def personas_reporte(db: Session) -> list[dict]:
+    """Personas de Design que cruzan con GeoVictoria (para elegir de quién sacar el historial), por nombre."""
+    pares = cruce(db)["pares"]
+    return sorted(({"id": e.id, "nombre": e.nombre_completo} for e in db.query(Empleado).filter(Empleado.id.in_(list(pares) or [-1]))
+                   if not _excluido_reporte(e.nombre_completo)), key=lambda x: x["nombre"].lower())
+
+
+def historial_persona(db: Session, empleado_id: int, mes: str, ahora: datetime) -> dict:
+    """Historial de llegadas tarde de una persona en un mes ('2026-10'; el en curso, hasta hoy): cada día con atraso, con la
+    hora de inicio del turno y la de entrada (Rosember, 28-oct-2026). Siempre consulta GeoVictoria (es una sola persona)."""
+    from calendar import monthrange
+    from .models_design import DesignArea
+    a, m = int(mes[:4]), int(mes[5:7])
+    ini = date(a, m, 1)
+    fin = min(date(a, m, monthrange(a, m)[1]), ahora.date())
+    e = db.get(Empleado, empleado_id)
+    ident = cruce(db)["pares"].get(empleado_id)
+    if not e or not ident:
+        raise ValueError("Esa persona no está en GeoVictoria (no cruza por cédula).")
+    c = config(db)
+    rango = {"StartDate": ini.strftime("%Y%m%d000000"), "EndDate": fin.strftime("%Y%m%d235959"), "UserIds": ident}
+    r = _post(c, "/AttendanceBook/GetConsolidatedColombia", rango)
+    filas = r if isinstance(r, list) else (r or {}).get("Response") or []
+    dias = [d for f in filas if _norm_id(f.get("Identifier")) == _norm_id(ident) for d in _dias_tarde(f)]
+    dias.sort(key=lambda d: d["fecha"])
+    for d in dias:
+        d["dia"] = date.fromisoformat(d["fecha"]).weekday()   # 0 = lunes
+    if dias:   # hora del turno y de la entrada de cada día (del libro de asistencia); si no llega, salen solo los minutos
+        try:
+            libro = _post(c, "/AttendanceBook", rango)
+            u = next((x for x in (libro or {}).get("Users", []) or [] if _norm_id(x.get("Identifier")) == _norm_id(ident)), None)
+            for d in dias:
+                info = leer_dia(u, date.fromisoformat(d["fecha"])) if u else None
+                if info:
+                    d["turno"] = _hm(info["turno"]["inicio"]) if info.get("turno") else ""
+                    d["entrada"] = _hm(info["marcas"]["entrada"])
+        except Exception as ex:  # noqa: BLE001
+            log.warning("GeoVictoria: no se pudo traer el detalle de entradas: %s", ex)
+    eq = (db.query(DesignTeam.nombre, DesignArea.nombre, DesignTeam.manager_id).join(DesignTeamDesigner, DesignTeamDesigner.team_id == DesignTeam.id)
+          .join(DesignArea, DesignArea.id == DesignTeam.area_id).filter(DesignTeam.activo == 1, DesignTeamDesigner.empleado_id == empleado_id).first())
+    man = db.get(Empleado, eq[2]) if eq and eq[2] else None
+    tot = sum(d["min"] for d in dias)
+    return {"id": e.id, "nombre": e.nombre_completo, "equipo": eq[0] if eq else "", "area": eq[1] if eq else "",
+            "manager": man.nombre_completo if man else "", "desde": ini.isoformat(), "hasta": fin.isoformat(),
+            "cerrado": fin == date(a, m, monthrange(a, m)[1]) and fin < ahora.date(), "dias": dias, "veces": len(dias), "minutos": tot,
+            "promedio": round(tot / len(dias)) if dias else 0, "max": max((d["min"] for d in dias), default=0),
+            "masDe15": sum(1 for d in dias if d["min"] > 15), "generado": datetime.utcnow().isoformat() + "Z"}
+
+
 def calcular_reporte(db: Session, ini: date, fin: date) -> dict:
     from .models_design import DesignArea
     c = config(db)
@@ -716,18 +778,9 @@ def calcular_reporte(db: Session, ini: date, fin: date) -> dict:
         eid = por_id.get(_norm_id(f.get("Identifier")))
         if not eid or eid not in emps or _excluido_reporte(emps[eid].nombre_completo):
             continue
-        dias = []
-        for d in f.get("SpecialDays") or []:
-            if str(d.get("HasDelay")) != "True":
-                continue
-            m = _min(d.get("Delay"))
-            if m <= 0:
-                continue
-            fd = _dt(d.get("Date"))
-            if not fd:
-                continue
-            dias.append({"fecha": fd.date().isoformat(), "min": m})
-            por_dia_semana[fd.weekday()] += 1
+        dias = _dias_tarde(f)
+        for d in dias:
+            por_dia_semana[date.fromisoformat(d["fecha"]).weekday()] += 1
         if not dias:
             continue
         tnom, anom, man = eq.get(eid, ("", "", None))

@@ -374,6 +374,27 @@ class Avisos(unittest.TestCase):
         self.assertEqual([e[0] for e in push], [[self.luis.id]])
 
 
+    def test_historial_de_una_persona(self):
+        """28-oct-2026: llegadas tarde de una persona en el mes, con la hora del turno y la de entrada de cada día."""
+        self.configurar(avisos=False)
+        def api(c, ruta, cuerpo):
+            if ruta == "/User/List":
+                return [{"Identifier": "1234567", "Enabled": "1", "Name": "Ana", "LastName": "X"}]
+            if ruta == "/AttendanceBook/GetConsolidatedColombia":
+                self.assertEqual((cuerpo["StartDate"], cuerpo["EndDate"], cuerpo["UserIds"]), ("20261001000000", "20261022235959", "1234567"))
+                return [{"Identifier": "1234567", "SpecialDays": [{"Date": "20261022000000", "HasDelay": "True", "Delay": "00:18"},
+                                                                  {"Date": "20261020000000", "HasDelay": "True", "Delay": "00:04"},
+                                                                  {"Date": "20261021000000", "HasDelay": "False", "Delay": "00:00"}]}]
+            return {"Users": [usuario("1234567", [("e", "071800")])]}   # el libro trae el 22 (turno 07:00)
+        g._post.side_effect = api
+        r = g.historial_persona(self.db, self.ana.id, "2026-10", datetime(2026, 10, 22, 9, 0))
+        self.assertEqual([(d["fecha"], d["min"], d["dia"]) for d in r["dias"]], [("2026-10-20", 4, 1), ("2026-10-22", 18, 3)])
+        self.assertEqual((r["dias"][1]["turno"], r["dias"][1]["entrada"]), ("07:00", "07:18"))
+        self.assertEqual((r["veces"], r["minutos"], r["masDe15"], r["manager"], r["cerrado"]), (2, 22, 1, "Luis X", False))
+        self.assertEqual([x["nombre"] for x in g.personas_reporte(self.db)], ["Ana X"])
+        with self.assertRaises(ValueError):
+            g.historial_persona(self.db, self.luis.id, "2026-10", datetime(2026, 10, 22, 9, 0))   # no cruza por cédula
+
     def test_reporte_excluye_a_rosember_y_leidy(self):
         self.configurar(avisos=False)
         self.ana.nombres, self.ana.apellidos = "Leidy Johana", "Rodríguez"
