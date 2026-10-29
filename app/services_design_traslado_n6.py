@@ -216,12 +216,12 @@ def pasar_ahora(db: Session, user) -> dict:
     return {"movidas": len(hecho), "ordenes": hecho}
 
 
-def deshacer(db: Session) -> dict:
-    """Devuelve las órdenes del traslado adelantado exactamente como estaban (copia de seguridad)."""
+def deshacer(db: Session, marca: str = MARCA) -> dict:
+    """Devuelve las órdenes de un traslado exactamente como estaban (copia de seguridad)."""
     from .models_design import DesignConexionRegla
-    r = db.query(DesignConexionRegla).filter(DesignConexionRegla.tipo == "respaldo", DesignConexionRegla.clave == MARCA).first()
+    r = db.query(DesignConexionRegla).filter(DesignConexionRegla.tipo == "respaldo", DesignConexionRegla.clave == marca).first()
     if not r:
-        raise ValueError("No hay un traslado adelantado que deshacer.")
+        raise ValueError("No hay nada que deshacer.")
     cols = {c.name: c for c in DesignOrden.__table__.columns}
     n = 0
     for f in json.loads(r.valor or "{}").get("ordenes", []):
@@ -244,3 +244,72 @@ def deshacer(db: Session) -> dict:
     db.delete(r)
     db.commit()
     return {"devueltas": n}
+
+
+# ---------- Órdenes viejas a Órdenes en espera (Rosember, 28-oct-2026) ----------
+# Órdenes de N6 en Material Change del formato viejo (1 al 28 de octubre) con Zirconia design aprobada y su QC, cuyo número no
+# vuelve a aparecer después: en el formato viejo quedaron terminadas, pero en el nuevo les falta la etapa siguiente (Nightguard
+# design; Zirconia en Over Ti-bar), así que esperan. Se mueven al 29. Zirconia design queda sin diseñador (con una nota de quién la
+# hizo), así la producción del mes no cambia: antes contaba una vez (el diseñador de la orden) y así sigue.
+ESPERA_DESDE = date(2026, 10, 1)
+MARCA_ESPERA = "espera_n6_2026_10_29"
+
+
+def candidatas_espera(db: Session) -> list:
+    n6 = db.query(DesignArea).filter(DesignArea.nombre == sd.AREA_N6).first()
+    equipos = [t.id for t in db.query(DesignTeam).filter(DesignTeam.area_id == n6.id)] if n6 else []
+    ultima: dict = {}   # número de orden → (fecha, id) de su aparición más reciente en N6
+    for oid, num, f in db.query(DesignOrden.id, DesignOrden.orden, DesignOrden.fecha).filter(DesignOrden.team_id.in_(equipos or [-1])):
+        k = (num or "").strip().upper()
+        if k and (k not in ultima or (f, oid) > ultima[k]):
+            ultima[k] = (f, oid)
+    filas = (db.query(DesignOrden).options(joinedload(DesignOrden.team).joinedload(DesignTeam.area), joinedload(DesignOrden.designer))
+             .filter(DesignOrden.team_id.in_(equipos or [-1]), DesignOrden.tabla == sd.TABLA_MATERIAL,
+                     DesignOrden.fecha >= ESPERA_DESDE, DesignOrden.fecha <= ORIGEN, DesignOrden.z_qc.is_(True))
+             .order_by(DesignOrden.fecha, DesignOrden.id).all())
+    return [o for o in filas
+            if sd._normalizar_texto(o.estado or "") == "approved" and sd.es_etapa_zirconia(o.etapa)
+            and ultima.get((o.orden or "").strip().upper()) == (o.fecha, o.id)]
+
+
+def convertir_espera(o) -> tuple[dict, list, list[str]]:
+    tibar = _es(o.producto, sd.TABLA_TIBAR)
+    quien = o.designer.nombre_completo if o.designer else "sin diseñador"
+    c = {"tabla": sd.TABLA_TIBAR if tibar else sd.TABLA_MATERIAL, "estado": "Approved", "z_estado": "Approved", "z_designer_id": None}
+    notas = [("z_", f"Zirconia design hecha el {o.fecha.strftime('%d/%m/%Y')} por {quien} (pasó a Órdenes en espera al cambiar de formato).")]
+    if (o.notas or "").strip():
+        notas.append(("z_", o.notas.strip()))
+    sig = "Zirconia" if tibar else "Nightguard design"
+    return c, notas, [f"Del {o.fecha.strftime('%d/%m')} pasa al 29 a Órdenes en espera ({'Over Ti-bar' if tibar else 'Material Change'}); "
+                      f"Bite y Zirconia design aprobadas, sigue {sig}."]
+
+
+def revisar_espera(db: Session) -> dict:
+    from .models_design import DesignConexionRegla
+    ya = db.query(DesignConexionRegla).filter(DesignConexionRegla.tipo == "respaldo", DesignConexionRegla.clave == MARCA_ESPERA).first()
+    lista = [{**_fila(o), "propuesta": convertir_espera(o)[2]} for o in candidatas_espera(db)]
+    return {"desde": ESPERA_DESDE.isoformat(), "hasta": ORIGEN.isoformat(), "destino": DESTINO.isoformat(), "total": len(lista),
+            "yaSeHizo": bool(ya), "ordenes": lista}
+
+
+def pasar_espera(db: Session, user) -> dict:
+    """Una sola vez: mueve al 29 a Órdenes en espera las órdenes viejas terminadas (ver candidatas_espera), con copia de seguridad."""
+    from .models_design import DesignConexionRegla
+    if db.query(DesignConexionRegla).filter(DesignConexionRegla.tipo == "respaldo", DesignConexionRegla.clave == MARCA_ESPERA).first():
+        raise ValueError("Ya se pasaron las órdenes viejas a Órdenes en espera.")
+    ordenes = candidatas_espera(db)
+    respaldo = [_foto(o) for o in ordenes]
+    hecho = []
+    for o in ordenes:
+        cambios, notas, txt = convertir_espera(o)
+        aplicar(o, cambios, notas)
+        maxv = (db.query(func.max(DesignOrden.orden_visual))
+                .filter(DesignOrden.team_id == o.team_id, DesignOrden.fecha == DESTINO, DesignOrden.tabla == o.tabla).scalar())
+        o.fecha, o.orden_visual = DESTINO, (maxv or 0) + 1
+        db.flush()
+        hecho.append({"id": o.id, "orden": o.orden, "tabla": o.tabla, "cambios": txt})
+    db.add(DesignConexionRegla(tipo="respaldo", clave=MARCA_ESPERA, creado_por=getattr(user, "nombre_completo", "Sistema"),
+                               valor=json.dumps({"ordenes": respaldo}, ensure_ascii=False, default=str)))
+    db.commit()
+    sd.alinear_copias_rd(db)
+    return {"movidas": len(hecho), "ordenes": hecho}

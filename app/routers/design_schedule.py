@@ -1871,6 +1871,52 @@ def api_traslado_n6_deshacer(user: Empleado = Depends(require_admin), db: Sessio
         raise HTTPException(400, str(e))
 
 
+@router.get("/design/diagnostico/espera-n6")
+def diagnostico_espera_n6(user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    """Admins, SOLO LECTURA: las órdenes viejas de N6 (1 al 28 de octubre) que pasarían al 29 a Órdenes en espera."""
+    from .. import services_design_traslado_n6 as stn
+    return stn.revisar_espera(db)
+
+
+@router.get("/design/diagnostico/espera-n6/pasar")
+def diagnostico_espera_n6_pasar(user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    """Admins: botón para pasar una vez esas órdenes a Órdenes en espera (con copia de seguridad para deshacerlo)."""
+    from .. import services_design_traslado_n6 as stn
+    r = stn.revisar_espera(db)
+    html = ("<!doctype html><meta charset='utf-8'><title>Órdenes viejas a espera</title><body style='font-family:system-ui;max-width:900px;margin:24px auto'>"
+            "<h2>N6: órdenes de días anteriores a Órdenes en espera (29 de octubre)</h2>"
+            f"<p>{r['total']} órdenes del 1 al 28 de octubre con Zirconia design aprobada y su QC, que no aparecen después. "
+            + ("<b>Ya se hizo.</b>" if r["yaSeHizo"] else "") + "</p>"
+            "<p>Revisa el detalle en <a href='/design/diagnostico/espera-n6'>/design/diagnostico/espera-n6</a>.</p>"
+            + ("<button id='b' style='font-size:16px;padding:8px 16px'>Pasar a Órdenes en espera</button>" if not r["yaSeHizo"] else
+               "<button id='d' style='font-size:16px;padding:8px 16px'>Deshacer</button>") +
+            "<pre id='r' style='white-space:pre-wrap;background:#f6f6f6;padding:10px'></pre><script>"
+            "function ir(u,m){if(!confirm(m))return;fetch(u,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})"
+            ".then(r=>r.json()).then(j=>{document.getElementById('r').textContent=JSON.stringify(j,null,1)})}"
+            "var b=document.getElementById('b');if(b)b.onclick=()=>ir('/design/api/diagnostico/espera-n6/pasar','¿Pasar estas órdenes al 29 en Órdenes en espera?');"
+            "var d=document.getElementById('d');if(d)d.onclick=()=>ir('/design/api/diagnostico/espera-n6/deshacer','¿Devolverlas a sus días como estaban?');"
+            "</script></body>")
+    return Response(html, media_type="text/html")
+
+
+@router.post("/design/api/diagnostico/espera-n6/pasar")
+def api_espera_n6_pasar(user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    from .. import services_design_traslado_n6 as stn
+    try:
+        return stn.pasar_espera(db, user)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@router.post("/design/api/diagnostico/espera-n6/deshacer")
+def api_espera_n6_deshacer(user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    from .. import services_design_traslado_n6 as stn
+    try:
+        return stn.deshacer(db, stn.MARCA_ESPERA)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
 @router.get("/design/diagnostico/produccion")
 def diagnostico_produccion(request: Request, team_id: int | None = None, desde: str = "", hasta: str = "",
                            user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
