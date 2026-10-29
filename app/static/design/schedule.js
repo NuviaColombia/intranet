@@ -2417,7 +2417,10 @@ window.addEventListener('unhandledrejection', function(ev) {
           if (actual) sel.value = actual;
           if (c.cat === 'estado') {   // Hold solo después de iniciar (también en cada etapa de N6)
             var trH = dsTrDeSel(sel), idH = trH ? parseInt(trH.dataset.id, 10) : NaN;
-            var fH = isNaN(idH) ? null : (DS.diaData && (DS.diaData[tabla] || []).find(function(x) { return x.id === idH; }));
+            // la orden de la fila (en «Prestadas a otros equipos» es de otro equipo: no está en DS.diaData[tabla]; 28-oct-2026)
+            var fH = isNaN(idH) ? null : ((trH._dsFila && trH._dsFila.f) ||
+              (DS.diaData && ((DS.diaData[tabla] || []).find(function(x) { return x.id === idH; }) ||
+                              (DS.diaData.prestadas || []).find(function(x) { return x.id === idH; }))));
             dsAjustarOpcionHold(trH, fH || {estado: actual});
             if (c.k === 'estado') { dsAjustarOpcionPickup(trH, fH || {estado: actual}); dsAjustarOpcionBite(trH, fH); }
           }
