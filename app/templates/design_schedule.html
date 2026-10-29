@@ -534,6 +534,13 @@
     <div><label for="drGvPMes">Mes</label><select id="drGvPMes"></select></div>
     <div><label aria-hidden="true">&nbsp;</label><button type="button" class="btn" id="drGvPDesc">Descargar historial</button></div>
   </div></div>
+{# Reportes de QC por diseñador (Rosember, 28-oct-2026): documento para el manager con los hallazgos del mes (routers/design_reportes.py) #}
+<div class="dd-panel"><div class="dd-panel-cab"><h3>Reportes de QC por diseñador</h3><span style="font-size:12px;color:#4b5563">Solicitud de seguimiento al manager, con la lista de hallazgos del mes</span></div>
+  <div class="dd-filtros">
+    <div><label for="drQcMes">Mes</label><select id="drQcMes"></select></div>
+    <div><label for="drQcDis">Diseñador</label><select id="drQcDis" style="min-width:260px"><option value="">Cargando…</option></select></div>
+    <div><label aria-hidden="true">&nbsp;</label><button type="button" class="btn" id="drQcDesc">Descargar reporte</button></div>
+  </div></div>
 <div class="dd-panel"><div class="dd-panel-cab"><h3>Reportes subidos</h3><span style="font-size:12px;color:#4b5563">PDF de hasta 15 MB</span></div>
   <div class="dd-filtros">
     <div><label for="drTitulo">Título</label><input type="text" id="drTitulo" maxlength="200" placeholder="Ej. Input failures by center" style="width:240px"></div>

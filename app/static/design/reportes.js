@@ -29,12 +29,32 @@
       if (gv && !gv.options.length) { gv.innerHTML = ops; if (gv.options.length > 1) gv.selectedIndex = 1; }
       var gp = $('drGvPMes');  // historial de una persona: por defecto el mes en curso
       if (gp && !gp.options.length) gp.innerHTML = ops;
+      var qm = $('drQcMes');   // Reportes de QC por diseñador: por defecto el mes en curso
+      if (qm && !qm.options.length) { qm.innerHTML = ops; qcDisenadores(); }
       pintar(d.subidos);
     }).catch(function() { res('No se pudieron cargar los reportes.', true); });
+  }
+  // Reportes de QC por diseñador (Rosember, 28-oct-2026): quienes tienen reportes de QC en el mes, de más a menos
+  function qcDisenadores() {
+    var sel = $('drQcDis');
+    sel.innerHTML = '<option value="">Cargando…</option>';
+    fetch('/design/api/reportes/qc-disenadores?mes=' + $('drQcMes').value, {credentials: 'same-origin'})
+      .then(function(r) { return r.json(); }).then(function(d) {
+        sel.innerHTML = d.disenadores.length ? '<option value="">Elige el diseñador…</option>' + d.disenadores.map(function(x) {
+          return '<option value="' + esc(x.clave) + '">' + esc(x.nombre) + ' (' + x.reportes + ' reporte' + (x.reportes === 1 ? '' : 's') + ')</option>'; }).join('')
+          : '<option value="">Nadie tiene reportes de QC en este mes</option>';
+      }).catch(function() { sel.innerHTML = '<option value="">No se pudo cargar</option>'; });
   }
   function iniciar() {
     if (listo) { cargar(); return; }
     listo = true;
+    if ($('drQcMes')) {
+      $('drQcMes').addEventListener('change', qcDisenadores);
+      $('drQcDesc').addEventListener('click', function() {
+        if (!$('drQcDis').value) { alert('Elige el diseñador.'); $('drQcDis').focus(); return; }
+        window.open('/design/reportes/qc-disenador?mes=' + $('drQcMes').value + '&d=' + encodeURIComponent($('drQcDis').value) + '&imprimir=1', '_blank', 'noopener');
+      });
+    }
     if ($('drGvAbrir')) $('drGvAbrir').addEventListener('click', function() {
       window.open('/design/reportes/geovictoria?mes=' + $('drGvMes').value, '_blank', 'noopener');
     });

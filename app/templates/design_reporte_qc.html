@@ -1,0 +1,107 @@
+<!doctype html>
+{# Dashboard › Reportes › Reportes de QC por diseñador (Rosember, 28-oct-2026): documento para el manager, con la lista de
+   hallazgos de QC del mes como anexo. Texto dado por Rosember. Datos: services_design_reporte_qc.reporte. #}
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reporte de QC · {{ r.nombre if r else 'Diseñador' }} · {{ mesTxt|capitalize }}</title>
+<style>
+  :root { --tinta:#1f1f1f; --gris:#6b6b6b; --muted:#8a8a8a; --borde:#e4e4e1; --fondo:#fafaf8; --rojo:#d64545; }
+  * { box-sizing:border-box; }
+  html { background:#eceae6; }
+  body { margin:0; font-family:"Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif; color:var(--tinta); font-size:13.5px; line-height:1.55; }
+  .barra { position:sticky; top:0; z-index:5; display:flex; gap:8px; align-items:center; flex-wrap:wrap; padding:10px 16px; background:#1b2333; color:#fff; }
+  .barra a, .barra button, .barra select { font:inherit; font-size:13px; padding:6px 12px; border-radius:8px; border:1px solid #3a465c; background:#26314a; color:#fff; text-decoration:none; cursor:pointer; }
+  .barra .prim { background:#2a78d6; border-color:#2a78d6; }
+  .barra .esp { flex:1; }
+  .hoja { max-width:820px; margin:18px auto; background:#fff; padding:44px 52px; box-shadow:0 2px 12px rgba(0,0,0,.08); }
+  .asunto { font-size:16px; margin:0 0 22px; }
+  h2 { font-size:14.5px; margin:22px 0 6px; break-after:avoid; page-break-after:avoid; }
+  p { margin:0 0 8px; }
+  ul { margin:4px 0 8px; padding-left:20px; } li { margin:3px 0; }
+  .firma { margin-top:28px; }
+  .firma b { display:block; text-transform:uppercase; }
+  .anexo { break-before:page; page-break-before:always; }
+  .sub { color:var(--gris); margin:0 0 10px; }
+  table { width:100%; border-collapse:collapse; font-size:12px; }
+  th { text-align:left; color:var(--gris); font-weight:600; padding:6px 8px; border-bottom:1.5px solid #c9c9c4; }
+  td { padding:6px 8px; border-bottom:1px solid var(--borde); vertical-align:top; }
+  tr { page-break-inside:avoid; }
+  td.n { white-space:nowrap; }
+  .vacio { color:var(--gris); font-style:italic; }
+  .pie { color:var(--muted); font-size:11.5px; margin-top:22px; border-top:1px solid var(--borde); padding-top:8px; }
+  @media (max-width:760px) { .hoja { padding:22px 16px; margin:0; } .tablas { overflow-x:auto; } }
+  @page { size:letter; margin:18mm; }
+  @media print {
+    html, body { background:#fff; }
+    .barra { display:none; }
+    .hoja { box-shadow:none; margin:0; padding:0; max-width:none; }
+  }
+</style>
+</head>
+<body>
+<div class="barra">
+  <a href="/design?panel=dashboard">← Volver al Dashboard</a>
+  <label>Mes <select id="mes" onchange="location.search='?mes='+this.value">
+    {% for m in meses %}<option value="{{ m }}"{{ ' selected' if m == mes }}>{{ MESES[m[5:]|int - 1]|capitalize }} {{ m[:4] }}</option>{% endfor %}
+  </select></label>
+  <label>Diseñador <select id="dis" onchange="location.search='?mes={{ mes }}&d='+encodeURIComponent(this.value)">
+    <option value="">Elige el diseñador…</option>
+    {% for x in lista %}<option value="{{ x.clave }}"{{ ' selected' if x.clave == d }}>{{ x.nombre }} ({{ x.reportes }})</option>{% endfor %}
+  </select></label>
+  <span class="esp"></span>
+  {% if r %}<button type="button" class="prim" onclick="window.print()">Descargar PDF</button>{% endif %}
+</div>
+{% macro f(iso) %}{{ iso[8:10] }}/{{ iso[5:7] }}/{{ iso[:4] }}{% endmacro %}
+<div class="hoja">
+  {% if not r %}<p class="vacio">{{ error }}</p>{% else %}
+  <p class="asunto"><b>Asunto:</b> Solicitud de seguimiento: desempeño en QC del diseñador {{ r.nombre }}</p>
+
+  <h2>Objetivo</h2>
+  <p>Por medio del presente reporte se solicita programar una conversación con el diseñador referenciado, debido al número de reportes registrados durante el control de calidad (QC) de su proceso de diseño.</p>
+
+  <h2>Antecedentes</h2>
+  <ul>
+    <li><b>Diseñador:</b> {{ r.nombre }}</li>
+    <li><b>Periodo evaluado:</b> {{ f(r.desde) }} a {{ f(r.hasta) }}</li>
+    <li><b>Total de casos diseñados en el periodo:</b> {{ r.casos if r.casos else '—' }}</li>
+    <li><b>Reportes registrados en QC:</b> {{ r.reportes }}{% if r.porcentaje is not none %} ({{ ('%.1f' % r.porcentaje).replace('.0', '').replace('.', ',') }} % del total){% endif %}</li>
+    <li><b>Principales hallazgos:</b> {% for c, n in r.categorias %}{{ c }} ({{ n }}){{ ', ' if not loop.last }}{% endfor %}</li>
+  </ul>
+
+  <h2>Puntos a tratar</h2>
+  <ul>
+    <li>Reforzar con el diseñador la importancia de entregar un producto que cumpla con los estándares de calidad esperados.</li>
+    <li>Identificar oportunidades de mejora, incluyendo posibles necesidades de entrenamiento o falencias técnicas que esté presentando.</li>
+    <li>Definir acciones concretas para evitar que la situación se repita.</li>
+  </ul>
+
+  <h2>Resultado esperado</h2>
+  <p>Como resultado de esta conversación, se espera levantar un acta con los compromisos acordados. El manager hará seguimiento a dicha acta para revisar periódicamente el avance del caso.</p>
+  <p>Quedo atenta a la confirmación de la fecha de la reunión.</p>
+
+  <div class="firma">
+    <p>Cordialmente,</p>
+    <b>{{ r.manager or '________________________' }}</b>
+    <span>{{ r.area }}</span>
+  </div>
+
+  <div class="anexo">
+    <h2>Anexo: hallazgos reportados en QC</h2>
+    <p class="sub">{{ r.nombre }} · {{ f(r.desde) }} a {{ f(r.hasta) }} · {{ r.reportes }} reporte{{ 's' if r.reportes != 1 }}.</p>
+    <div class="tablas"><table>
+      <thead><tr><th>#</th><th>Fecha</th><th>Orden</th><th>Paciente</th><th>Producto</th><th>Hallazgo de QC</th></tr></thead>
+      <tbody>{% for h in r.lista %}<tr><td class="n">{{ loop.index }}</td><td class="n">{{ h.fecha[8:10] }}/{{ h.fecha[5:7] }}</td><td class="n">{{ h.orden }}</td>
+        <td>{{ h.paciente }}</td><td>{{ h.producto }}</td><td>{{ h.hallazgo|replace('\n', ' · ') }}</td></tr>{% endfor %}</tbody>
+    </table></div>
+  </div>
+  {% endif %}
+  <div class="pie">Generado el {{ generado }} (Colombia) · Nuvia Design Colombia · datos del Schedule (reportes escritos al marcar el QC)</div>
+</div>
+<script>
+  {% if imprimir %}addEventListener('load', function() { setTimeout(function() { window.print(); }, 300); });{% endif %}
+</script>
+<script src="/static/design/esc.js?v={{ ds_estaticos_v }}" defer></script>{# Esc = ir al Schedule #}
+</body>
+</html>

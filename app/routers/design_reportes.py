@@ -86,6 +86,38 @@ def pagina_reporte(request: Request, mes: str = "", lang: str = "es", user: Empl
         "user": user, "r": d, "t": t, "meses": sr.meses_disponibles(), "mesesTxt": sr.MESES})
 
 
+@router.get("/design/reportes/qc-disenador")
+def pagina_reporte_qc(request: Request, mes: str = "", d: str = "", imprimir: int = 0, user: Empleado = Depends(require_admin),
+                      db: Session = Depends(get_db)):
+    """Reportes de QC por diseñador (28-oct-2026): documento para el manager con la lista de hallazgos del mes, para PDF."""
+    from .. import services_design as sd
+    from .. import services_design_reporte_qc as srq
+    meses = sr.meses_disponibles()
+    mes = mes if mes in meses else meses[0]
+    r, error, lista = None, "", []
+    try:
+        lista = srq.disenadores(db, user, mes)
+        r = srq.reporte(db, user, mes, d) if d else None
+        if not d:
+            error = "Elige el diseñador." if lista else "Nadie tiene reportes de QC en este mes."
+    except ValueError as e:
+        error = str(e)
+    return templates.TemplateResponse(request, "design_reporte_qc.html", {
+        "user": user, "r": r, "d": d, "mes": mes, "meses": meses, "lista": lista, "error": error, "imprimir": bool(imprimir and r),
+        "mesTxt": sr.MESES["es"][int(mes[5:]) - 1] + " " + mes[:4], "MESES": sr.MESES["es"],
+        "generado": sd.ahora_colombia().strftime("%d/%m/%Y %H:%M")})
+
+
+@router.get("/design/api/reportes/qc-disenadores")
+def api_reporte_qc_disenadores(mes: str = "", user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+    """Diseñadores con reportes de QC en el mes (para elegir de quién sacar el documento)."""
+    from .. import services_design_reporte_qc as srq
+    try:
+        return {"disenadores": srq.disenadores(db, user, mes or sr.meses_disponibles(1)[0])}
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
 @router.get("/design/api/reportes")
 def api_reportes(user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
     return {"meses": sr.meses_disponibles(), "subidos": sr.listar_subidos(db)}
