@@ -4,6 +4,7 @@
      {t:'asig', id}          casos de una persona (id 0 = revisar todos)
      {t:'ord', team, fecha, o:[órdenes], x:[ids]}  el cambio de las órdenes de un equipo y día (solo las que puede ver esa persona)
      {t:'cfg'}               equipos, catálogos, festivos...   {t:'cambios'}  Cambios digitales   {t:'ayuda'}  Solicitar ayuda
+     {t:'gv'}                marcas nuevas de GeoVictoria (Seguimiento)
      {t:'op'}                Openings (Parámetros)   {t:'pa'}   Pre-Approved      {t:'inicio', que:'pub'|'muro'}   página de Inicio
      {t:'reconectado', primera}  se (re)abrió la conexión: cada pantalla revisa una vez por si se perdió algo
                              (primera: true = la conexión al abrir la página; quien acaba de cargar sus datos la ignora)

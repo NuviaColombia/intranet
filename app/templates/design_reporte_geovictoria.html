@@ -75,13 +75,14 @@
     {% for m in meses %}<option value="{{ m }}"{{ ' selected' if m == mes }}>{{ MESES[m[5:]|int - 1]|capitalize }} {{ m[:4] }}</option>{% endfor %}
   </select></label>
   <span class="esp"></span>
+  <a href="?mes={{ mes }}&actualizar=1" title="Vuelve a consultar GeoVictoria ahora (toma las correcciones hechas allá)">⟳ Actualizar</a>
   <button type="button" class="prim" onclick="window.print()">Descargar PDF</button>
 </div>
 {% macro dur(m) %}{% if m >= 60 %}{{ (m // 60)|int }} h{% if m % 60 %} {{ (m % 60)|int }} min{% endif %}{% else %}{{ m|int }} min{% endif %}{% endmacro %}
 <div class="hoja">
   <h1>Llegadas tarde · {{ mesTxt|capitalize }}</h1>
   {% if error %}<p class="vacio">{{ error }}</p>{% else %}
-  <p class="sub">Design Colombia · GeoVictoria · del {{ r.desde[8:10] }}/{{ r.desde[5:7] }} al {{ r.hasta[8:10] }}/{{ r.hasta[5:7] }}{{ ' · mes en curso: datos hasta hoy' if not r.cerrado }}.
+  <p class="sub">Design Colombia · GeoVictoria · del {{ r.desde[8:10] }}/{{ r.desde[5:7] }} al {{ r.hasta[8:10] }}/{{ r.hasta[5:7] }}{{ ' · mes en curso: datos hasta hoy' if not r.cerrado }}{% if r.generado %} · consultado en GeoVictoria a las {{ consultado }}{% endif %}{{ ' (GeoVictoria no respondió: es la última copia guardada)' if r.guardado }}.
     Solo salen quienes llegaron tarde al menos una vez; quienes siempre llegaron a tiempo no salen.</p>
 
   <div class="kpis">
@@ -136,7 +137,7 @@
   <ul class="metodo">
     <li><b>Fuente:</b> GeoVictoria (libro de asistencia de Colombia): atraso en la entrada de cada día, comparado con la hora de inicio del turno asignado.</li>
     <li><b>Quién sale:</b> personas activas de Nuvia Design que cruzan por cédula con GeoVictoria y llegaron tarde al menos una vez. Quien siempre llegó a tiempo no sale.</li>
-    <li><b>Meses cerrados:</b> el reporte se guarda el día 1 del mes siguiente y no cambia después; el mes en curso se calcula al abrirlo.</li>
+    <li><b>Correcciones:</b> el reporte se vuelve a consultar en GeoVictoria al abrirlo (como mucho cada 10 min; «Actualizar» lo trae ya), así que los atrasos corregidos o justificados allá se reflejan, también en meses cerrados. Si GeoVictoria no responde, se muestra la última copia guardada.</li>
   </ul>
   {% endif %}
   <div class="pie">Generado el {{ generado }} (Colombia) · Nuvia Design Colombia</div>

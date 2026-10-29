@@ -113,6 +113,7 @@ class Avisos(unittest.TestCase):
         t = md.DesignTeam(area_id=a.id, nombre="Eq", manager_id=self.luis.id, orden=1, activo=1); self.db.add(t); self.db.commit()
         self.db.add(md.DesignTeamDesigner(team_id=t.id, empleado_id=self.ana.id)); self.db.commit()
         g._hoy.update(fecha=None, t=0.0, datos={}); g._enviados.update(fecha=None, claves=set()); g._usuarios.update(t=0.0, lista=[])
+        g._reporte_cache.clear()
         self.envios = []
         def _env(db, ids, *a, **k):
             self.envios.append((sorted(ids), a[0], k.get("fijo")))
@@ -308,7 +309,40 @@ class Avisos(unittest.TestCase):
         self.assertEqual(r["masDe15"], 1)
         self.assertEqual(r["equipos"][0]["manager"], "Luis X")
         g._post.side_effect = lambda *a: (_ for _ in ()).throw(RuntimeError("no debería consultar"))
-        self.assertEqual(g.reporte_mes(self.db, "2026-09", datetime(2026, 10, 22, 9, 0))["total"], 2)   # sale de lo guardado
+        self.assertEqual(g.reporte_mes(self.db, "2026-09", datetime(2026, 10, 22, 9, 0))["total"], 2)   # en memoria (10 min)
+
+    def test_reporte_toma_las_correcciones_de_geovictoria(self):
+        """28-oct-2026: un atraso corregido en GeoVictoria se refleja, también en un mes cerrado (antes quedaba fijo)."""
+        self.configurar(avisos=False)
+        atrasos = [("20260905000000", "00:12"), ("20260907000000", "00:20")]
+        g._post.side_effect = lambda c, ruta, cuerpo: ([{"Identifier": "1234567", "Enabled": "1"}] if ruta == "/User/List" else
+                                                       [{"Identifier": "1234567", "SpecialDays": [{"Date": d, "HasDelay": "True", "Delay": m} for d, m in atrasos]}])
+        ahora = datetime(2026, 10, 22, 9, 0)
+        self.assertEqual(g.reporte_mes(self.db, "2026-09", ahora)["total"], 2)
+        atrasos.pop()   # el manager justificó el del 7 en GeoVictoria
+        self.assertEqual(g.reporte_mes(self.db, "2026-09", ahora, forzar=True)["total"], 1)        # «Actualizar»
+        atrasos.pop()
+        g._reporte_cache["2026-09"] = (0, g._reporte_cache["2026-09"][1])                          # pasaron los 10 min
+        self.assertEqual(g.reporte_mes(self.db, "2026-09", ahora)["personas"], [])
+        g._post.side_effect = lambda *a: (_ for _ in ()).throw(RuntimeError("GeoVictoria caído"))
+        g._reporte_cache.clear()
+        r = g.reporte_mes(self.db, "2026-09", ahora)                                                # sin respuesta: lo guardado
+        self.assertTrue(r["guardado"]); self.assertEqual(r["personas"], [])
+        with self.assertRaises(RuntimeError):
+            g.reporte_mes(self.db, "2026-10", ahora)                                                # mes en curso sin copia
+
+    def test_marcas_nuevas_avisan_a_seguimiento_en_vivo(self):
+        """28-oct-2026: cuando llega una huella nueva, Seguimiento abierto se vuelve a pedir sin esperar."""
+        from app import services_design_vivo as sv
+        self.configurar(avisos=False)
+        with mock.patch.object(sv, "publicar") as pub:
+            g.hoy(self.db, datetime(2026, 10, 22, 7, 0), forzar=True)
+            pub.reset_mock()
+            g.hoy(self.db, datetime(2026, 10, 22, 7, 2), forzar=True)   # nada cambió: sin aviso
+            self.assertEqual(pub.call_count, 0)
+            self.marcas.append(("e", "070500"))
+            g.hoy(self.db, datetime(2026, 10, 22, 7, 6), forzar=True)
+            pub.assert_called_once_with([{"t": "gv"}])
 
 
     def test_inconsistencias_del_mes_los_viernes(self):

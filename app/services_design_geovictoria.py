@@ -31,7 +31,7 @@ BASE = "https://customerapi.geovictoria.com/api/v1"
 CLAVE = "geovictoria"
 AVISOS_CLAVE = "gv_avisos_"
 LOTE = 40
-REFRESCO_S = 300            # marcas de hoy: cada 5 minutos
+REFRESCO_S = 120            # marcas de hoy: cada 2 minutos (antes 5; Rosember, 28-oct-2026: las huellas tardaban en verse)
 USUARIOS_S = 3600           # lista de usuarios de GeoVictoria: cada hora
 TOLERANCIA = 10             # minutos de margen antes de avisar (Rosember)
 TIMEOUT = 60
@@ -336,13 +336,29 @@ def hoy(db: Session, ahora: datetime, forzar: bool = False) -> dict:
             return _hoy["datos"]
         try:
             datos = _consultar(db, ahora.date())
+            antes = _hoy["datos"] if _hoy["fecha"] == ahora.date() else {}
             _hoy.update(fecha=ahora.date(), t=time.time(), datos=datos, error="", consultado=datetime.utcnow())
+            _avisar_cambios(antes, datos)
         except Exception as e:  # noqa: BLE001
             _hoy.update(t=time.time(), error=f"{type(e).__name__}: {e}"[:300])
             if _hoy["fecha"] != ahora.date():
                 _hoy.update(fecha=ahora.date(), datos={})
             log.warning("GeoVictoria: no se pudieron traer las marcas: %s", e)
         return _hoy["datos"]
+
+
+def _huella(info: dict) -> tuple:
+    return (tuple(info.get("marcas", {}).values()), tuple(info.get("permisos") or []), bool(info.get("sinHorario")))
+
+
+def _avisar_cambios(antes: dict, despues: dict) -> None:
+    """Si alguna marca cambió, Seguimiento abierto se vuelve a pedir enseguida (aviso en vivo {t:'gv'}, sin datos)."""
+    if any(_huella(v) != _huella(antes.get(k) or {}) for k, v in despues.items()):
+        try:
+            from . import services_design_vivo as sv
+            sv.publicar([{"t": "gv"}])
+        except Exception:  # noqa: BLE001
+            pass
 
 
 def para_seguimiento(empleado_id: int, ahora: datetime, tol: int | None = None) -> dict | None:
@@ -452,7 +468,9 @@ def revisar(db: Session, ahora: datetime) -> list[str]:
         else:
             with _lock:
                 if _hoy.get("fecha") == ahora.date():
+                    antes = {k: _hoy["datos"].get(k) or {} for k in frescos}
                     _hoy["datos"].update(frescos)   # Seguimiento también ve lo más nuevo
+                    _avisar_cambios(antes, frescos)
             datos = {eid: frescos[eid] for eid in pend if eid in frescos}
     else:
         datos = {}
@@ -644,6 +662,10 @@ def almuerzo_a_tiempos_libres(db: Session, dia: date, datos: dict) -> int:
 # Dashboard › Reportes › Reportes GeoVictoria. Sale de GetConsolidatedColombia (días con atraso y minutos por persona).
 # Solo salen quienes llegaron tarde al menos una vez. Los meses cerrados quedan guardados (clave REPORTE_CLAVE + mes) el
 # día 1; el mes en curso se calcula al abrirlo (en memoria 30 min).
+# 28-oct-2026 (Rosember): los atrasos que se corrigen o justifican en GeoVictoria no se veían (el mes cerrado quedaba fijo y
+# el en curso tardaba hasta 30 min). Ahora todo mes se recalcula al abrirlo si lo guardado tiene más de REPORTE_FRESCO_S, y
+# el botón «Actualizar» lo trae ya. El guardado solo se usa si GeoVictoria no responde.
+REPORTE_FRESCO_S = 600
 REPORTE_CLAVE = "gv_reporte_"
 REPORTE_VERSION = 2   # sube cuando cambia lo que entra al reporte: los meses guardados con otra versión se recalculan
 # No salen en el reporte de llegadas tarde (Rosember, 22-oct-2026). Se comparan las palabras del nombre sin tildes.
@@ -727,32 +749,34 @@ def calcular_reporte(db: Session, ini: date, fin: date) -> dict:
             "porDiaSemana": por_dia_semana[:5] + por_dia_semana[5:], "generado": datetime.utcnow().isoformat() + "Z", "version": REPORTE_VERSION}
 
 
-def reporte_mes(db: Session, mes: str, ahora: datetime) -> dict:
-    """Reporte de llegadas tarde de un mes ('2026-10'). Cerrado: el guardado (o se calcula y se guarda). En curso: al día."""
+def reporte_mes(db: Session, mes: str, ahora: datetime, forzar: bool = False) -> dict:
+    """Reporte de llegadas tarde de un mes ('2026-10'), al día con GeoVictoria (los datos tienen como mucho
+    REPORTE_FRESCO_S; `forzar` los pide ya). Los meses cerrados se guardan y ese guardado solo se muestra si GeoVictoria no responde."""
     from calendar import monthrange
     a, m = int(mes[:4]), int(mes[5:7])
     ini = date(a, m, 1)
     fin = date(a, m, monthrange(a, m)[1])
     cerrado = fin < ahora.date()
+    c = _reporte_cache.get(mes)
+    if c and not forzar and time.time() - c[0] < REPORTE_FRESCO_S:
+        return c[1]
     clave = REPORTE_CLAVE + mes
-    if cerrado:
-        r = db.query(DesignConexionRegla).filter(DesignConexionRegla.tipo == "sistema", DesignConexionRegla.clave == clave).first()
-        if r:
+    r = db.query(DesignConexionRegla).filter(DesignConexionRegla.tipo == "sistema", DesignConexionRegla.clave == clave).first() if cerrado else None
+    try:
+        datos = {**calcular_reporte(db, ini, fin if cerrado else min(fin, ahora.date())), "cerrado": cerrado}
+    except Exception:
+        if r:   # GeoVictoria no responde: se muestra lo último guardado
             try:
                 guardado = json.loads(r.valor)
                 if guardado.get("version") == REPORTE_VERSION:
-                    return {**guardado, "cerrado": True}
+                    return {**guardado, "cerrado": True, "guardado": True}
             except ValueError:
                 pass
-        datos = calcular_reporte(db, ini, fin)
+        raise
+    if cerrado:
         r = r or DesignConexionRegla(tipo="sistema", clave=clave, creado_por="GeoVictoria")
         r.valor = json.dumps(datos, ensure_ascii=False)
         db.add(r); db.commit()
-        return {**datos, "cerrado": True}
-    c = _reporte_cache.get(mes)
-    if c and time.time() - c[0] < 1800:
-        return c[1]
-    datos = {**calcular_reporte(db, ini, min(fin, ahora.date())), "cerrado": False}
     _reporte_cache[mes] = (time.time(), datos)
     return datos
 

@@ -19,7 +19,7 @@ def pagina(request: Request, user: Empleado = Depends(require_admin)):
 
 
 @router.get("/design/reportes/geovictoria")
-def pagina_reporte(request: Request, mes: str = "", user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
+def pagina_reporte(request: Request, mes: str = "", actualizar: int = 0, user: Empleado = Depends(require_admin), db: Session = Depends(get_db)):
     """Dashboard › Reportes › Reportes GeoVictoria: quienes llegaron tarde en el mes (imprimible como PDF)."""
     from .. import services_design_reportes as sr
     meses = sr.meses_disponibles()
@@ -27,13 +27,22 @@ def pagina_reporte(request: Request, mes: str = "", user: Empleado = Depends(req
     ahora = sd.ahora_colombia().replace(tzinfo=None)
     error = ""
     try:
-        r = sgv.reporte_mes(db, mes, ahora)
+        r = sgv.reporte_mes(db, mes, ahora, forzar=bool(actualizar))   # «Actualizar»: ya, sin esperar
     except Exception as e:  # noqa: BLE001
         r, error = None, f"No se pudo consultar GeoVictoria: {e}"
     return templates.TemplateResponse(request, "design_reporte_geovictoria.html", {
         "user": user, "r": r, "mes": mes, "meses": meses, "error": error,
         "mesTxt": sr.MESES["es"][int(mes[5:]) - 1] + " " + mes[:4], "generado": ahora.strftime("%d/%m/%Y %H:%M"),
-        "MESES": sr.MESES["es"]})
+        "MESES": sr.MESES["es"], "consultado": _hora_colombia((r or {}).get("generado"))})
+
+
+def _hora_colombia(iso_utc: str | None) -> str:
+    """'2026-10-28T20:15:00Z' (UTC) → '28/10 15:15' (Colombia)."""
+    from datetime import datetime, timedelta
+    try:
+        return (datetime.fromisoformat(str(iso_utc).rstrip("Z")) - timedelta(hours=5)).strftime("%d/%m %H:%M")
+    except ValueError:
+        return ""
 
 
 @router.get("/design/api/geovictoria/config")
