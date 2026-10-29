@@ -6714,6 +6714,14 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
     cmtPoPintado = cmtClavePo(f);
     var grupo = cmtGrupoProducto(f.b7);
     var delProducto = CMT_TPL.filter(function(t) { return cmtTplAplica(t, grupo); });
+    // Sin producto escrito: primero las de los demás productos, luego las de Nightguard y al final las de TC (Rosember, 29-oct-2026).
+    // Dentro de cada grupo se respeta el orden de siempre.
+    if (!grupo) {
+      var rango = function(t) { return t.aplicaA === 'ng' ? 1 : t.aplicaA === 'tc' ? 2 : 0; };
+      delProducto = delProducto.map(function(t, i) { return {t: t, i: i}; })
+        .sort(function(a, b) { return (rango(a.t) - rango(b.t)) || (a.i - b.i); })
+        .map(function(x) { return x.t; });
+    }
     var q = cmtSinTildes(CMT_TPL_Q).trim();
     var lista = delProducto.filter(function(t) { return !q || cmtSinTildes(t.n).indexOf(q) >= 0 || cmtSinTildes(t.t).indexOf(q) >= 0; });
     var favs = lista.filter(function(t) { return t.id != null && CMT_FAVS[t.id]; });
