@@ -57,7 +57,7 @@
 :root[data-ds-tema="oscuro"] .modulo-desc { color:var(--gris); }
 :root[data-ds-tema="oscuro"] .modulo.disabled:hover { box-shadow:0 1px 3px rgba(0,0,0,.08); }
 
-/* ---- static\design\schedule.css (781 reglas) ---- */
+/* ---- static\design\schedule.css (784 reglas) ---- */
 :root[data-ds-tema="oscuro"] .ds-overlay { background:#131925; }
 :root[data-ds-tema="oscuro"] .ds-overlay-close { background:#111827; color:#fff; border:none; box-shadow:0 3px 10px rgba(0,0,0,.3); }
 :root[data-ds-tema="oscuro"] .ds-overlay-close:hover { background:var(--ds-acento); color:var(--ds-acento-t); }
@@ -325,6 +325,9 @@
 :root[data-ds-tema="oscuro"] .ds-btn-ojo:hover { color:var(--ds-acento); }
 :root[data-ds-tema="oscuro"] .ds-btn-x { background:#2c384e; color:#fff; border:none; }
 :root[data-ds-tema="oscuro"] .ds-btn-x:hover { background:#4b5563; }
+:root[data-ds-tema="oscuro"] table.ds-tabla td.ds-ficha { border-left:2px solid #424d63; }
+:root[data-ds-tema="oscuro"] .ds-ficha-d { color:#bbc0cb; }
+:root[data-ds-tema="oscuro"] .ds-etapa-encoger { border:1px solid currentColor; background:transparent; color:inherit; }
 :root[data-ds-tema="oscuro"] .btn.ds-btn-add { background:#111827; color:#fff; }
 :root[data-ds-tema="oscuro"] .btn.ds-btn-add .ds-mas { fill:none; stroke:currentColor; }
 :root[data-ds-tema="oscuro"] .btn.ds-btn-add:hover { background:#1f2a44; box-shadow:0 0 0 4px rgba(17,24,39,.12); }

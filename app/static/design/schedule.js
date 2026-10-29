@@ -1016,6 +1016,7 @@ window.addEventListener('unhandledrejection', function(ev) {
       document.getElementById('dsPanel' + t).style.display = sep ? '' : 'none';
       if (!sep) document.getElementById('dsTabla' + t).innerHTML = '';
     });
+    document.querySelectorAll('.ds-btn-etapas').forEach(function(b) { b.style.display = sep ? '' : 'none'; b.textContent = DS.verTodasEtapas ? 'Encoger etapas' : 'Ver todas las etapas'; });
     if (dsAreaNombre() !== DS_AREA_MATERIAL) return;
     document.getElementById('dsPanelNightguard').style.display = !sep || (dia.nightguard || []).length ? '' : 'none';
     document.getElementById('dsTituloPrincipal').innerText = sep ? 'Cirugías' : 'Cirugías/Dummy';
@@ -1127,9 +1128,39 @@ window.addEventListener('unhandledrejection', function(ev) {
     });
     api(url).then(function(todas) { pintar(todas); txt.focus(); }).catch(function(e) { lista.innerHTML = '<p class="ds-notas-vacio">No se pudieron cargar las notas.</p>'; });
   }
-  function dsBandaHtml(spec, f) {
+  // ---------- Etapas encogidas (N6, Rosember, 28-oct-2026) ----------
+  // En Material Change y Over Ti-bar, una etapa superada (Approved o Dr authorization, con su QC, y la orden ya siguió) y una que
+  // todavía no empieza (sin estado, después de la etapa en curso) se ven como una ficha: nombre, estado, diseñador, Total y QC.
+  // Un clic en la ficha la abre en esa orden; «−» junto al nombre la vuelve a encoger. «Ver todas las etapas» las abre todas.
+  DS.etapasAbiertas = {};
+  DS.verTodasEtapas = false;
+  try { DS.verTodasEtapas = localStorage.getItem('dsVerEtapas') === '1'; } catch (e) {}
+  function dsEtapaColapsable(f, tabla, g) {
+    var et = DS_ETAPAS_TABLA[tabla];
+    if (!et || !(DS.diaData && DS.diaData.n6Separado)) return false;
+    var p = g === 'b' ? '' : g, i = et.indexOf(p);
+    if (i < 0) return false;
+    var est = function(q) { return String(f[dsCampoEt(q, 'estado')] || '').trim(); }, e = dsNorm(est(p));
+    if ((e === 'approved' || e === 'dr authorization') && f[dsCampoEt(p, 'qc')] && et.slice(i + 1).some(est)) return true;   // superada
+    return !e && i > et.indexOf(dsEtapaActual(f, tabla));   // todavía no empieza
+  }
+  function dsEtapasColapsadas(f, tabla) {
+    if (DS.verTodasEtapas) return [];
+    return ['b', 'z', 'x', 'n'].filter(function(g) { return !DS.etapasAbiertas[(f.id || 'nuevo') + ':' + g] && dsEtapaColapsable(f, tabla, g); });
+  }
+  function dsFichaHtml(g, f) {
+    var p = g === 'b' ? '' : g, e = f[dsCampoEt(p, 'estado')] || '';
+    var dis = g === 'b' ? (f.designerCorto || f.designerPrestado || '') : (f[p + 'DesignerCorto'] || '');
+    var tot = e ? dsCalcTxt(g + 'Total', f) : '', qc = !!f[dsCampoEt(p, 'qc')];
+    var det = [e || 'Por hacer', dis, tot, qc ? 'QC ✓' : ''].filter(Boolean).map(dsEsc).join(' · ');
+    return '<td rowspan="3" class="ds-ficha ds-g-' + g + '" data-ficha="' + g + '" title="Clic para ver la etapa completa">' +
+           '<div class="ds-ficha-t">' + (e ? '✓ ' : '') + dsEsc(DS_GRUPOS[g] || '') + ' ' + dsBotonNotas(g, f) + '</div>' +
+           '<div class="ds-ficha-d">' + det + '</div></td>';
+  }
+  function dsBandaHtml(spec, f, tabla) {
     var cols = [], estados = {}, prod = null;
     spec.forEach(function(c) {
+      if (c.oculta) { if (cols[cols.length - 1] !== 'F:' + c.g) cols.push('F:' + c.g); return; }   // etapa encogida: una ficha
       if (c.banda) { if (c.g) estados[c.g] = c; else prod = c; return; }
       var n = 1 + (c.k === 'fHold' && !c.sinTHold ? 1 : 0) + (c.extra ? c.extra.length : 0);
       for (var j = 0; j < n; j++) cols.push(c.g || '');
@@ -1139,9 +1170,12 @@ window.addEventListener('unhandledrejection', function(ev) {
     while (i < cols.length) {
       var g = cols[i], j = i;
       while (j < cols.length && cols[j] === g) j++;
+      if (g.indexOf('F:') === 0) { html += dsFichaHtml(g.slice(2), f); i = j; continue; }
       if (g && estados[g]) {
         var fin = Math.max(i, j - 3);   // el estado va sobre Fin, QC y Total: las 3 últimas columnas de la etapa
-        if (fin > i) html += '<td colspan="' + (fin - i) + '" class="ds-g-' + g + ' ds-g-ini ds-banda-t">' + dsEsc(DS_GRUPOS[g] || '') + '</td>';
+        var encoger = tabla && !DS.verTodasEtapas && DS.etapasAbiertas[(f.id || 'nuevo') + ':' + g] && dsEtapaColapsable(f, tabla, g)
+          ? ' <button type="button" class="ds-etapa-encoger" data-encoger="' + g + '" title="Encoger esta etapa" aria-label="Encoger esta etapa">−</button>' : '';
+        if (fin > i) html += '<td colspan="' + (fin - i) + '" class="ds-g-' + g + ' ds-g-ini ds-banda-t">' + dsEsc(DS_GRUPOS[g] || '') + encoger + '</td>';
         html += '<td colspan="' + (j - fin) + '" class="ds-g-' + g + ' ds-banda-e"><span class="ds-banda-ee">' + dsBotonNotas(g, f) + dsCeldaInput(estados[g], f) + '</span></td>';
       } else if (!g && i === 0 && prod) {   // el Producto, sobre Orden · Paciente · Centro
         html += '<td colspan="' + (j - i) + '" class="ds-banda-p">' + dsCeldaInput(prod, f) + '</td>';
@@ -1154,7 +1188,7 @@ window.addEventListener('unhandledrejection', function(ev) {
   function dsEtiquetasHtml(spec, tabla, clase, total) {
     var s = DS.sort[tabla], html = '<tr' + (clase ? ' class="' + clase + '"' : '') + '>';
     spec.forEach(function(c) {
-      if (c.banda) return;
+      if (c.banda || c.oculta) return;
       if (DS_SORTABLES[c.k]) {
         var on = s && s.k === c.k;
         html += '<th class="ds-th-sort' + (on ? ' on' : '') + (c.g ? ' ds-g-' + c.g : '') + '" data-sort="' + c.k + '" title="Ordenar alfabéticamente">' + c.l +
@@ -1165,8 +1199,11 @@ window.addEventListener('unhandledrejection', function(ev) {
     return html + '<th class="ds-th-total">' + total + '</th><th></th></tr>';
   }
   function dsPorOrden(spec) { return spec.some(function(c) { return c.banda; }); }   // N6: cada orden con su encabezado
-  function dsFilaConBandaHtml(spec, f, tabla) {
-    return (dsPorOrden(spec) ? dsBandaHtml(spec, f) + dsEtiquetasHtml(spec, tabla, 'ds-pre ds-tr-etiq', 'Total general') : '') + dsFilaHtml(spec, f, tabla);
+  function dsFilaConBandaHtml(spec, f, tabla, encoger) {
+    if (!dsPorOrden(spec)) return dsFilaHtml(spec, f, tabla);
+    var cg = encoger ? dsEtapasColapsadas(f, tabla) : [];
+    var s = cg.length ? spec.map(function(c) { return cg.indexOf(c.g) >= 0 ? Object.assign({}, c, {oculta: true}) : c; }) : spec;
+    return dsBandaHtml(s, f, tabla) + dsEtiquetasHtml(s, tabla, 'ds-pre ds-tr-etiq', 'Total general') + dsFilaHtml(s, f, tabla);
   }
 
   // ¿Esta lista de estados es de una fila de Material Change?
@@ -1214,7 +1251,7 @@ window.addEventListener('unhandledrejection', function(ev) {
             : ['horaInicio', 'horaInicioDiseno', 'horaFin'];
     // [campo, ¿ya debería tener hora?]. Material Change: Bite al pasar a Zirconia; Zirconia al aprobar la orden.
     var esMat = tablaReal === 'material', biteHecha = esMat && dsEsZirconia(f), zHecha = biteHecha && aprobada;
-    var sepEt = esMat && !!dsCampoDe(tr, '[data-campo="nEstado"]');   // N6 con un estado por etapa (28-oct-2026)
+    var sepEt = esMat && !!dsBandaDe(tr);   // N6 con un estado por etapa (28-oct-2026)
     var ETAPAS = [['estado', 'horaInicio', 'sHold', 'fHold', 'horaFin', 'qc', 'qcReporte'], ['zEstado', 'zHoraInicio', 'zSHold', 'zFHold', 'zHoraFin', 'zQc', 'zQcReporte'],
                   ['xEstado', 'xHoraInicio', 'xSHold', 'xFHold', 'xHoraFin', 'xQc', 'xQcReporte'], ['nEstado', 'nHoraInicio', 'nSHold', 'nFHold', 'nHoraFin', 'nQc', 'nQcReporte']];
     var reqs = sepEt ? ETAPAS.reduce(function(a, e) {   // cada etapa aprobada debe tener su Inicio y su Fin
@@ -1657,6 +1694,7 @@ window.addEventListener('unhandledrejection', function(ev) {
     spec.forEach(function(c, i) {
       if (c.banda) return;
       ci++;
+      if (c.oculta) return;   // etapa encogida (la ficha ocupa su lugar); el número de columna se conserva
       var g = c.g ? 'ds-g-' + c.g + (c.g !== (spec[i - 1] || {}).g ? ' ds-g-ini' : '') : '';
       if (c.t === 'calc') { html += '<td data-col="' + ci + '" class="ds-calc ' + g + '" data-calc="' + c.k + '">' + dsCalcTxt(c.k, f) + '</td>'; return; }
       html += '<td data-col="' + ci + '"' + (g ? ' class="' + g + '"' : '') + '>' + dsCeldaInput(c, f) + '</td>';
@@ -1740,6 +1778,7 @@ window.addEventListener('unhandledrejection', function(ev) {
       if (tr.classList.contains('ds-oculta') !== (oc && !DS.verOcultas)) cambio = true;
       tr.classList.toggle('ds-oculta', oc && !DS.verOcultas);
       tr.classList.toggle('ds-oculta-ver', oc && DS.verOcultas);
+      var tbBloque = tr.closest('table.ds-bloque'); if (tbBloque) tbBloque.classList.toggle('ds-bloque-oculto', oc && !DS.verOcultas);
       dsPreviasDe(tr).forEach(function(r) {   // su encabezado (franja y nombres de columna) se oculta con ella
         r.classList.toggle('ds-oculta', oc && !DS.verOcultas); r.classList.toggle('ds-oculta-ver', oc && DS.verOcultas);
       });
@@ -2248,7 +2287,7 @@ window.addEventListener('unhandledrejection', function(ev) {
   }
   function dsEsHoldEstado(e) { return dsNorm(e) === 'hold'; }
   function dsAjustarOpcionHold(tr, f) {
-    var sels = tr ? dsInputsDe(tr).filter(function(el) { return el.matches('select[data-campo="estado"], select[data-campo="zEstado"], select[data-campo="xEstado"], select[data-campo="nEstado"]'); }) : [], porEtapas = !!(tr && dsCampoDe(tr, 'select[data-campo="nEstado"]'));
+    var sels = tr ? dsInputsDe(tr).filter(function(el) { return el.matches('select[data-campo="estado"], select[data-campo="zEstado"], select[data-campo="xEstado"], select[data-campo="nEstado"]'); }) : [], porEtapas = !!(tr && dsBandaDe(tr));
     sels.forEach(function(sel) {
       var ok = dsHoldPermitido(f, sel.dataset.campo, porEtapas);
       [].forEach.call(sel.options, function(o) {
@@ -2547,14 +2586,26 @@ window.addEventListener('unhandledrejection', function(ev) {
     var cont = document.getElementById(DS_CONT[tabla]);
     var filas = dsFilasOrdenadas(tabla);
     var s = DS.sort[tabla];
-    var html = '<table class="ds-tabla' + (dsTablaBase(tabla) === 'material' ? ' ds-tabla-material' + (dsEsRD() ? ' ds-tabla-rd' : '') : '') + '">' +
-      (dsPorOrden(spec) ? '<tbody>' : '<thead>' + dsFilaGrupos(spec, 2) + dsEtiquetasHtml(spec, tabla, '', dsTablaBase(tabla) === 'material' ? 'Total general' : 'Total') + '</thead><tbody>');
-    filas.forEach(function(f) { html += dsFilaConBandaHtml(spec, f, tabla); });
-    if (dsPuedeCrear() && !filas.some(dsFrenaFilaNueva)) html += dsFilaConBandaHtml(spec, {}, tabla);
-    html += '</tbody></table>';
+    var claseT = 'ds-tabla' + (dsTablaBase(tabla) === 'material' ? ' ds-tabla-material' + (dsEsRD() ? ' ds-tabla-rd' : '') : '');
+    var html, nuevaFila = dsPuedeCrear() && !filas.some(dsFrenaFilaNueva);
+    if (dsPorOrden(spec)) {   // N6: cada orden en su propia tablita, así cada una encoge sus etapas
+      var bloque = function(f) { return '<table class="' + claseT + ' ds-bloque"><tbody>' + dsFilaConBandaHtml(spec, f, tabla, true) + '</tbody></table>'; };
+      html = filas.map(bloque).join('') + (nuevaFila ? bloque({}) : '');
+    } else {
+      html = '<table class="' + claseT + '"><thead>' + dsFilaGrupos(spec, 2) + dsEtiquetasHtml(spec, tabla, '', dsTablaBase(tabla) === 'material' ? 'Total general' : 'Total') + '</thead><tbody>';
+      filas.forEach(function(f) { html += dsFilaConBandaHtml(spec, f, tabla); });
+      if (nuevaFila) html += dsFilaConBandaHtml(spec, {}, tabla);
+      html += '</tbody></table>';
+    }
     DS.renderizando = true; // si la celda con foco desaparece, su "blur" no debe guardar
     try { cont.innerHTML = html; } finally { DS.renderizando = false; }
-    cont.querySelectorAll('tbody tr[data-id]').forEach(function(tr) { dsConectarFila(tr, tabla); dsMarcarFila(tr, tabla); });
+    cont.querySelectorAll('tbody tr[data-id]').forEach(function(tr) {
+      dsConectarFila(tr, tabla); dsMarcarFila(tr, tabla);
+      if (tr.closest('table.ds-bloque')) {   // qué etapas quedaron encogidas: si cambia al guardar, se redibuja
+        var fE = (DS.diaData[tabla] || []).find(function(x) { return String(x.id) === tr.dataset.id; }) || {};
+        tr._encogidas = dsEtapasColapsadas(fE, tabla).join(',');
+      }
+    });
     if (tabla === 'principal') dsSubirTablaPrincipal();
     if (dsDiaCerrado()) {
       // Día cerrado: todo en solo lectura; el QC sigue editable hasta las 5:00 am de D+2.
@@ -2649,7 +2700,7 @@ window.addEventListener('unhandledrejection', function(ev) {
   function dsBloquearEstadosAjenos(cont, lista) {
     var yo = DS.diaData && DS.diaData.miId;
     cont.querySelectorAll('tbody tr[data-id]').forEach(function(tr) {
-      if (!dsCampoDe(tr, 'select[data-campo="nEstado"]')) return;
+      if (!dsBandaDe(tr)) return;
       var f = (lista || []).find(function(x) { return String(x.id) === tr.dataset.id; });
       Object.keys(DS_DISENADOR_ETAPA).forEach(function(campo) {
         var el = dsCampoDe(tr, 'select[data-campo="' + campo + '"]');
@@ -2710,6 +2761,23 @@ window.addEventListener('unhandledrejection', function(ev) {
       try { localStorage.setItem('dsEsperaAbierta', abierta ? '1' : '0'); } catch (e) {}
     });
   })();
+
+  document.addEventListener('click', function(e) {   // fichas de etapas encogidas y «Ver todas las etapas»
+    var t = e.target;
+    if (t.closest && t.closest('.ds-btn-etapas')) {
+      DS.verTodasEtapas = !DS.verTodasEtapas;
+      try { localStorage.setItem('dsVerEtapas', DS.verTodasEtapas ? '1' : '0'); } catch (er) {}
+      dsPanelesN6(DS.diaData || {}); dsRenderTabla('material'); dsRenderTabla('tibar'); return;
+    }
+    var fi = t.closest && t.closest('td.ds-ficha'), en = t.closest && t.closest('[data-encoger]');
+    if ((!fi && !en) || t.closest('[data-notas]')) return;   // el botón de notas de la ficha abre sus notas
+    var el = fi || en, tr = dsTrDeSel(el), cont = el.closest('[id^="dsTabla"]');
+    var tabla = cont && DS_TABLAS.filter(function(x) { return DS_CONT[x] === cont.id; })[0];
+    if (!tr || !tabla) return;
+    var k = (tr.dataset.id === 'nuevo' ? 'nuevo' : tr.dataset.id) + ':' + (fi ? fi.dataset.ficha : en.dataset.encoger);
+    if (fi) DS.etapasAbiertas[k] = true; else delete DS.etapasAbiertas[k];
+    dsRenderTabla(tabla);
+  });
 
   // Órdenes de otros equipos asignadas a este diseñador como prestado (solo en la vista del diseñador).
   function dsRenderPrestadas() {
@@ -3063,6 +3131,9 @@ window.addEventListener('unhandledrejection', function(ev) {
   }
 
   function dsTrasGuardar(tabla, tr, o) {
+    if (tr.isConnected && tr.closest('table.ds-bloque') && tr._encogidas !== dsEtapasColapsadas(o, tabla).join(',')) {
+      dsRenderTabla(tabla); dsRenderKpis(DS.diaData); return;   // N6: una etapa se encogió o se abrió
+    }
     if (tr.isConnected && DS_ETAPAS_TABLA[tabla] && DS.diaData && DS.diaData.n6Separado &&
         !!tr.closest('#dsTablaEspera') !== !!dsEsperaInfo(o, tabla)) {   // N6: entró o salió de Órdenes en espera
       dsRenderTabla(tabla); dsRenderEspera(); dsRenderKpis(DS.diaData); return;
@@ -3086,12 +3157,14 @@ window.addEventListener('unhandledrejection', function(ev) {
     if (tabla === 'prestadas') return;
     // Si ya no queda ninguna fila incompleta (sin contar los casos que pasaron de otro día), se agrega una fila nueva vacía
     // al final (sin redibujar: no se pierde el foco).
-    var tbody = tr.parentNode;
-    if (dsPuedeCrear() && !DS.diaData[tabla].some(dsFrenaFilaNueva) && !tbody.querySelector('tr[data-id="nuevo"]')) {
+    var tbody = tr.parentNode, bloqueT = tr.closest('table.ds-bloque'), contT = document.getElementById(DS_CONT[tabla]);
+    if (dsPuedeCrear() && !DS.diaData[tabla].some(dsFrenaFilaNueva) && !(bloqueT ? contT : tbody).querySelector('tr[data-id="nuevo"]')) {
       var spec = dsSpec(tabla);
-      var tmp = document.createElement('tbody'); tmp.innerHTML = dsFilaConBandaHtml(spec, {}, tabla);
+      var tmp = document.createElement('tbody'); tmp.innerHTML = dsFilaConBandaHtml(spec, {}, tabla, !!bloqueT);
       var nueva = tmp.lastElementChild, conPrevias = tmp.children.length > 1;
-      [].slice.call(tmp.children).forEach(function(r) { tbody.appendChild(r); });
+      if (bloqueT) {   // N6: la orden nueva va en su propia tablita
+        var tN = document.createElement('table'); tN.className = bloqueT.className; tN.appendChild(tmp); contT.appendChild(tN); tbody = tmp;
+      } else [].slice.call(tmp.children).forEach(function(r) { tbody.appendChild(r); });
       dsConectarFila(nueva, tabla);
       dsPoblarCatalogos(conPrevias ? document.getElementById(DS_CONT[tabla]) : nueva, spec, tabla);
       dsAjustarCreaProducto(tbody);

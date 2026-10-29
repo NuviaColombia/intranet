@@ -572,7 +572,17 @@
   #ds-app.ds-n6 .ds-panel-h .ds-btn-add { order:-2; }
   #ds-app.ds-n6 .ds-panel-h > h3, #ds-app.ds-n6 .ds-panel-h > .ds-panel-titulo { order:-1; }
   #ds-app.ds-n6 .ds-panel-h::after { content:''; flex:1 1 auto; }
-  #ds-app.ds-n6 .ds-panel-h .ds-btn-ocultas, #ds-app.ds-n6 .ds-panel-h .ds-btn-apoyo { order:1; }
+  #ds-app.ds-n6 .ds-panel-h .ds-btn-ocultas, #ds-app.ds-n6 .ds-panel-h .ds-btn-apoyo, #ds-app.ds-n6 .ds-panel-h .ds-btn-etapas { order:1; }
+  .btn.ds-btn-etapas { padding:3px 10px; font-size:12px; line-height:1.4; border-radius:6px; margin:0; }
+  /* N6: cada orden en su tablita; etapas encogidas como ficha (Rosember, 28-oct-2026) */
+  table.ds-tabla.ds-bloque { margin-bottom:2px; }
+  table.ds-tabla.ds-bloque.ds-bloque-oculto { display:none; }
+  table.ds-tabla td.ds-ficha { vertical-align:middle; min-width:120px; max-width:180px; padding:6px 8px; cursor:pointer; border-left:2px solid #94a3b8; text-align:left; }
+  table.ds-tabla td.ds-ficha:hover { filter:brightness(.96); }
+  .ds-ficha-t { font-size:12px; font-weight:700; display:flex; align-items:center; gap:6px; white-space:nowrap; }
+  .ds-ficha-d { font-size:11px; color:#475569; margin-top:3px; line-height:1.35; }
+  .ds-etapa-encoger { margin-left:6px; border:1px solid currentColor; background:transparent; color:inherit; border-radius:6px; width:20px; height:18px;
+    line-height:14px; padding:0; cursor:pointer; font-weight:700; }
   /* Cirugías: la tabla sube una fila (la de Articulation / Design queda a la altura del título); el título y sus botones
      quedan por encima y se pueden usar (28-oct-2026). Lo decide dsSubirTablaPrincipal solo cuando cabe. */
   #dsPanelPrincipal.ds-grupos-arriba > #dsTablaPrincipal { margin-top:calc(-1 * var(--ds-subir, 0px)); }
