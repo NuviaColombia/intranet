@@ -268,9 +268,15 @@ def candidatas_espera(db: Session) -> list:
              .filter(DesignOrden.team_id.in_(equipos or [-1]), DesignOrden.tabla == sd.TABLA_MATERIAL,
                      DesignOrden.fecha >= ESPERA_DESDE, DesignOrden.fecha <= ORIGEN, DesignOrden.z_qc.is_(True))
              .order_by(DesignOrden.fecha, DesignOrden.id).all())
+    # Las que ya tienen el Nightguard hecho en Nightguards / TC (fila aprobada en N6) quedaron terminadas: no van a espera
+    # (Rosember, 28-oct-2026). Las filas de Cirugías con el mismo número son duplicados y no cuentan.
+    ng_hecho = {(num or "").strip().upper() for num, e in db.query(DesignOrden.orden, DesignOrden.estado)
+                .filter(DesignOrden.team_id.in_(equipos or [-1]), DesignOrden.tabla == "nightguard")
+                if sd._normalizar_texto(e or "") == "approved"}
     return [o for o in filas
             if sd._normalizar_texto(o.estado or "") == "approved" and sd.es_etapa_zirconia(o.etapa)
-            and ultima.get((o.orden or "").strip().upper()) == (o.fecha, o.id)]
+            and ultima.get((o.orden or "").strip().upper()) == (o.fecha, o.id)
+            and (o.orden or "").strip().upper() not in ng_hecho]
 
 
 def convertir_espera(o) -> tuple[dict, list, list[str]]:
