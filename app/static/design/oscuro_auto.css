@@ -57,7 +57,7 @@
 :root[data-ds-tema="oscuro"] .modulo-desc { color:var(--gris); }
 :root[data-ds-tema="oscuro"] .modulo.disabled:hover { box-shadow:0 1px 3px rgba(0,0,0,.08); }
 
-/* ---- static\design\schedule.css (795 reglas) ---- */
+/* ---- static\design\schedule.css (796 reglas) ---- */
 :root[data-ds-tema="oscuro"] .ds-overlay { background:#131925; }
 :root[data-ds-tema="oscuro"] .ds-overlay-close { background:#111827; color:#fff; border:none; box-shadow:0 3px 10px rgba(0,0,0,.3); }
 :root[data-ds-tema="oscuro"] .ds-overlay-close:hover { background:var(--ds-acento); color:var(--ds-acento-t); }
@@ -748,6 +748,7 @@
 :root[data-ds-tema="oscuro"] .ds-espera-tog { background:transparent; color:inherit; }
 :root[data-ds-tema="oscuro"] .ds-espera-n { color:#aab2bf; }
 :root[data-ds-tema="oscuro"] .ds-espera-vacio { color:#aab2bf; }
+:root[data-ds-tema="oscuro"] .ds-espera-busca input { border:1px solid #323b4b; }
 :root[data-ds-tema="oscuro"] table.ds-tabla tr.ds-fila-espera td { background:#171e2d !important; }
 :root[data-ds-tema="oscuro"] table.ds-tabla tr.ds-fila-espera input, :root[data-ds-tema="oscuro"] table.ds-tabla tr.ds-fila-espera select { color:#abb2c0; -webkit-text-fill-color:#abb2c0; }
 :root[data-ds-tema="oscuro"] table.ds-tabla tr.ds-banda td.ds-g-b { background:#102039; color:#9fb3ea; }

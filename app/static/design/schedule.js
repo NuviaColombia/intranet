@@ -2761,6 +2761,7 @@ window.addEventListener('unhandledrejection', function(ev) {
       .filter(function(g) { return g[1].length; });
     var n = grupos.reduce(function(a, g) { return a + g[1].length; }, 0);
     document.getElementById('dsEsperaN').textContent = n ? '(' + n + ')' : '';
+    document.getElementById('dsEsperaBusca').hidden = !n;
     if (!n) { cont.innerHTML = '<p class="ds-espera-vacio">No hay órdenes en espera.</p>'; return; }
     var html = '';
     grupos.forEach(function(g) {
@@ -2785,7 +2786,33 @@ window.addEventListener('unhandledrejection', function(ev) {
       if (dsSoloPropias()) dsBloquearEstadosAjenos(tb, g[1]);
       dsPintarColores(tb);
     });
+    dsFiltrarEspera();   // lo escrito en el buscador sigue valiendo cuando la sección se vuelve a pintar (p. ej. en vivo)
   }
+  // Buscador de Órdenes en espera (Rosember, 28-oct-2026): por nombre del paciente o número de orden, sin tildes ni mayúsculas.
+  // Solo oculta filas: no cambia nada de las órdenes.
+  function dsFiltrarEspera() {
+    var cont = document.getElementById('dsTablaEspera'), inp = document.getElementById('dsEsperaBuscar');
+    if (!cont || !inp) return;
+    var sin = function(v) { return dsNorm(v).normalize('NFD').replace(/[̀-ͯ]/g, ''); };
+    var q = sin(inp.value), total = 0, vistas = 0;
+    cont.querySelectorAll('table[data-tabla]').forEach(function(tb) {
+      var lista = (DS.diaData && DS.diaData[tb.dataset.tabla]) || [], enTabla = 0;
+      tb.querySelectorAll('tbody tr[data-id]').forEach(function(tr) {
+        var f = lista.find(function(x) { return String(x.id) === tr.dataset.id; }) || {};
+        var ve = !q || sin(f.paciente).indexOf(q) >= 0 || sin(f.orden).indexOf(q) >= 0;
+        [tr].concat(dsPreviasDe(tr)).forEach(function(r) { r.style.display = ve ? '' : 'none'; });
+        total++; if (ve) { vistas++; enTabla++; }
+      });
+      tb.style.display = enTabla ? '' : 'none';
+      var h = tb.previousElementSibling;
+      if (h && h.classList.contains('ds-prest-h')) h.style.display = enTabla ? '' : 'none';
+    });
+    document.getElementById('dsEsperaBuscaN').textContent = q && total ? (vistas ? vistas + ' de ' + total : 'Ninguna orden en espera coincide') : '';
+  }
+  (function() {
+    var inp = document.getElementById('dsEsperaBuscar');
+    if (inp) inp.addEventListener('input', dsFiltrarEspera);
+  })();
   (function() {   // la sección se pliega y se despliega; se recuerda en este navegador
     var b = document.getElementById('dsEsperaTog'), cuerpo = document.getElementById('dsEsperaCuerpo');
     if (!b || !cuerpo) return;
