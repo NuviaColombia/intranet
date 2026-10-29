@@ -6704,7 +6704,7 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
     return '<div class="cmt-tpl-item' + (abierta ? ' abierta' : '') + '"><div class="cmt-tpl-head">' + star +
            '<button type="button" class="cmt-tpl-name" aria-expanded="' + abierta + '" title="' + cmtEscHtml(texto.slice(0, 300)).replace(/"/g, '&quot;') +
            '" onclick="cmtTplAbrir(\'' + clave + '\')"><span class="cmt-tpl-flecha" aria-hidden="true">▸</span> ' + cmtEscHtml(tpl.n) + '</button>' +
-           '<span class="cmt-tpl-acc">' + edit + '<button type="button" class="btn mini" onclick="cmtCopiarPlantilla(' + CMT_TPL.indexOf(tpl) + ', this)">Copiar</button></span></div>' +
+           '<span class="cmt-tpl-acc">' + edit + '<button type="button" class="cmt-tpl-ico cmt-tpl-copiar" title="Copiar nota" aria-label="Copiar nota «' + cmtEscHtml(tpl.n) + '»" onclick="cmtCopiarPlantilla(' + CMT_TPL.indexOf(tpl) + ', this)"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="5.5" y="5.5" width="8.5" height="8.5" rx="1.5"/><path d="M10.5 3.5V3A1.5 1.5 0 0 0 9 1.5H3A1.5 1.5 0 0 0 1.5 3v6A1.5 1.5 0 0 0 3 10.5h.5"/></svg></button></span></div>' +
            (abierta ? '<div class="cmt-tpl-text">' + cmtEscHtml(texto) + '</div>' : '') + '</div>';
   }
   window.cmtTplAbrir = function(clave) { CMT_TPL_ABIERTAS[clave] = !CMT_TPL_ABIERTAS[clave]; cmtRenderPlantillas(); };
@@ -7010,7 +7010,10 @@ function ddAbrirFiltros() {   // pestaña Filtros (antes «Resumen»): igual que
   }
   window.cmtCopiarPlantilla = function(i, boton) {
     var f = cmtLeer();
-    if (CMT_TPL[i]) window.dsCopiar(cmtTplText(CMT_TPL[i], f), boton);
+    if (!CMT_TPL[i]) return;
+    // el icono no cambia de texto: se marca en verde un momento (dsCopiar sin botón no toca el texto)
+    window.dsCopiar(cmtTplText(CMT_TPL[i], f), null);
+    if (boton) { boton.classList.add('ok'); setTimeout(function() { boton.classList.remove('ok'); }, 1200); }
   };
 
   // ================= N2 / Face Design: hojas FAQ =================

@@ -819,6 +819,9 @@
   /* Lápiz (✎) y papelera (🗑) solo aparecen al pasar el mouse por la nota (o al usarla con el teclado). Ocupan su lugar,
      así «Copiar» no se mueve (Rosember, 29-oct-2026). */
   .cmt-tpl-item .cmt-tpl-acc > .cmt-tpl-ico { opacity:0; pointer-events:none; transition:opacity .12s; }
+  /* Copiar de una nota: icono (no texto); aparece con las otras acciones al pasar el mouse (Rosember, 29-oct-2026) */
+  .cmt-tpl-copiar { display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px; padding:0; color:#6b7280; }
+  .cmt-tpl-copiar.ok { color:#15803d; background:#dcfce7; opacity:1; pointer-events:auto; }
   .cmt-tpl-item:hover .cmt-tpl-acc > .cmt-tpl-ico, .cmt-tpl-item:focus-within .cmt-tpl-acc > .cmt-tpl-ico { opacity:1; pointer-events:auto; }
   .cmt-tpl-sep { font-size:11px; color:#4b5563; text-transform:uppercase; margin:10px 0 6px; font-weight:600; }
   .cmt-nota label.cmt-nota-lbl { display:block; font-size:12px; font-weight:600; color:#374151; margin:0 0 4px; }

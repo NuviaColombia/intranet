@@ -57,7 +57,7 @@
 :root[data-ds-tema="oscuro"] .modulo-desc { color:var(--gris); }
 :root[data-ds-tema="oscuro"] .modulo.disabled:hover { box-shadow:0 1px 3px rgba(0,0,0,.08); }
 
-/* ---- static\design\schedule.css (808 reglas) ---- */
+/* ---- static\design\schedule.css (810 reglas) ---- */
 :root[data-ds-tema="oscuro"] .ds-overlay { background:#131925; }
 :root[data-ds-tema="oscuro"] .ds-overlay-close { background:#111827; color:#fff; border:none; box-shadow:0 3px 10px rgba(0,0,0,.3); }
 :root[data-ds-tema="oscuro"] .ds-overlay-close:hover { background:var(--ds-acento); color:var(--ds-acento-t); }
@@ -430,6 +430,8 @@
 :root[data-ds-tema="oscuro"] .cmt-tpl-ico { border:none; background:none; color:#9ca3af; }
 :root[data-ds-tema="oscuro"] .cmt-tpl-ico:hover { background:#1d2229; color:#c5cad3; }
 :root[data-ds-tema="oscuro"] .cmt-tpl-star.on { color:#f59e0b; }
+:root[data-ds-tema="oscuro"] .cmt-tpl-copiar { color:#abb2c0; }
+:root[data-ds-tema="oscuro"] .cmt-tpl-copiar.ok { color:#a2f0bf; background:#153821; }
 :root[data-ds-tema="oscuro"] .cmt-tpl-sep { color:#bbc1cc; }
 :root[data-ds-tema="oscuro"] .cmt-nota label.cmt-nota-lbl { color:#c5cad3; }
 :root[data-ds-tema="oscuro"] .cmt-nota .cmt-nota-po { color:#c5cad3; }
