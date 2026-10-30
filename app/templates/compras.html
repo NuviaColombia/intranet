@@ -1,0 +1,393 @@
+{% extends "base.html" %}
+{% block titulo %}Compras{% endblock %}
+{% block contenido %}
+<style>
+  .compras-seccion { display:none; }
+  .compras-seccion.activa { display:block; }
+  .compras-barra { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:14px; flex-wrap:wrap; }
+  .compras-sub { color:var(--gris); font-size:13px; margin:0; }
+  .compras-linea { display:grid; grid-template-columns:2fr 1fr 1fr auto; gap:10px; align-items:end; margin-bottom:8px; }
+  .compras-vacio { color:var(--gris); text-align:center; padding:18px; }
+  .compras-acciones { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+  .compras-ojo { background:none; border:none; cursor:pointer; font-size:16px; padding:4px 6px; }
+  .compras-chips { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
+  .compras-chips button { padding:5px 12px; border-radius:999px; border:1px solid var(--borde); background:#fff; cursor:pointer; font-size:12.5px; }
+  .compras-chips button.activo { background:var(--azul); color:#fff; border-color:var(--azul); }
+  .compras-modal-bg { display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:200; align-items:flex-start; justify-content:center; padding:40px 16px; overflow:auto; }
+  .compras-modal-bg.open { display:flex; }
+  .compras-modal { background:#fff; border-radius:12px; padding:24px; max-width:520px; width:100%; }
+  .compras-modal h2 { margin:0 0 4px; }
+  .doc-header { display:flex; align-items:center; gap:14px; border-bottom:2px solid var(--azul); padding-bottom:12px; margin-bottom:8px; }
+  .doc-header img { height:44px; }
+  .doc-header h2 { margin:0; font-size:18px; }
+  .doc-codigo { font-size:12px; color:var(--gris); margin-top:2px; }
+  .compras-modal-fila { display:flex; justify-content:space-between; gap:12px; padding:7px 0; border-bottom:1px solid #f0f0f0; font-size:14px; }
+  .compras-modal-fila b { color:var(--gris); font-weight:600; }
+  .compras-modal-lineas { margin:4px 0 0; padding-left:18px; }
+  @media print {
+    body * { visibility:hidden; }
+    .compras-modal, .compras-modal * { visibility:visible; }
+    .compras-modal { position:absolute; top:0; left:0; width:100%; max-width:100%; box-shadow:none; }
+    .compras-modal-cerrar, .compras-modal-imprimir { display:none; }
+  }
+</style>
+{% set logo = logo_empresa(user.empresa) %}
+<h1 style="margin-bottom:4px">🛒 Compras — Inventario de Items</h1>
+<p class="compras-sub" style="margin-bottom:18px">Acceso exclusivo de superadmin por ahora.</p>
+
+<!-- ============ INVENTARIO ============ -->
+<div id="sec-inventario" class="compras-seccion activa tarjeta">
+  <div class="compras-barra"><h2 style="margin:0">📦 Inventario actual</h2>
+    <div><label style="display:inline;margin-right:6px">A fecha:</label><input type="date" id="invFecha" style="width:auto;display:inline-block;margin:0" onchange="cargarInventario()"></div>
+  </div>
+  <input type="text" id="invBuscar" placeholder="Buscar por nombre o SKU/Código…" style="margin-bottom:10px" oninput="filtrarInventario()">
+  <div class="compras-chips" id="invCategorias"></div>
+  <table><thead><tr><th>Item</th><th>SKU/Código</th><th>Categoría</th><th>Unidad de conteo</th><th>Stock (unidades)</th></tr></thead>
+    <tbody id="invCuerpo"><tr><td colspan="5" class="compras-vacio">Cargando…</td></tr></tbody></table>
+</div>
+
+<!-- ============ SOLICITAR ITEM ============ -->
+<div id="sec-solicitar" class="compras-seccion tarjeta">
+  <h2 style="margin-top:0">📝 Solicitar Item</h2>
+  <p class="compras-sub">Agrega los items que necesitas; queda pendiente de entrega.</p>
+  <div id="solLineas"></div>
+  <div class="compras-acciones">
+    <button type="button" class="btn gris" onclick="agregarLineaSolicitud()">＋ Agregar ítem</button>
+  </div>
+  <div style="margin-top:12px"><label>Notas (opcional)</label><textarea id="solNotas" rows="2"></textarea></div>
+  <div class="compras-acciones"><button type="button" class="btn verde" onclick="enviarSolicitud()">Enviar solicitud</button></div>
+  <div id="solMsg"></div>
+</div>
+
+<!-- ============ MIS SOLICITUDES ============ -->
+<div id="sec-mias" class="compras-seccion tarjeta">
+  <h2 style="margin-top:0">📋 Mis solicitudes</h2>
+  <table><thead><tr><th>Fecha</th><th>Ítems</th><th>Estado</th><th>Notas</th></tr></thead>
+    <tbody id="miasCuerpo"><tr><td colspan="4" class="compras-vacio">Cargando…</td></tr></tbody></table>
+</div>
+
+<!-- ============ REGISTRAR INGRESO ============ -->
+<div id="sec-ingreso" class="compras-seccion tarjeta">
+  <h2 style="margin-top:0">📥 Registrar ingreso</h2>
+  <p class="compras-sub">Queda pendiente de aprobación antes de sumar al inventario.</p>
+  <div class="compras-linea" style="grid-template-columns:2fr 1fr 1fr 1fr">
+    <div><label>Ítem</label><select id="ingItem"></select></div>
+    <div><label>Cantidad</label><input type="number" min="0" step="any" id="ingCantidad"></div>
+    <div><label>Unidad</label><select id="ingUnidad"></select></div>
+    <div><label>Fecha</label><input type="date" id="ingFecha"></div>
+  </div>
+  <div><label>Notas (opcional)</label><textarea id="ingNotas" rows="2"></textarea></div>
+  <div class="compras-acciones"><button type="button" class="btn verde" onclick="registrarIngreso()">Registrar ingreso</button></div>
+  <div id="ingMsg"></div>
+</div>
+
+<!-- ============ APROBAR INGRESOS ============ -->
+<div id="sec-aprobar-ingresos" class="compras-seccion tarjeta">
+  <h2 style="margin-top:0">✅ Ingresos pendientes de aprobación</h2>
+  <table><thead><tr><th>Fecha</th><th>Ítem</th><th>Cantidad</th><th>Registrado por</th><th>Notas</th><th>Acción</th></tr></thead>
+    <tbody id="aiCuerpo"><tr><td colspan="6" class="compras-vacio">Cargando…</td></tr></tbody></table>
+</div>
+
+<!-- ============ APROBAR / ENTREGAR SOLICITUDES ============ -->
+<div id="sec-aprobar-solicitudes" class="compras-seccion tarjeta">
+  <h2 style="margin-top:0">🚚 Solicitudes pendientes de entrega</h2>
+  <table><thead><tr><th>Fecha</th><th>Solicitante</th><th>Ítems</th><th>Notas</th><th>Acción</th></tr></thead>
+    <tbody id="asCuerpo"><tr><td colspan="5" class="compras-vacio">Cargando…</td></tr></tbody></table>
+</div>
+
+<!-- ============ MODAL: resumen de transacción ============ -->
+<div class="compras-modal-bg" id="comprasModalBg">
+  <div class="compras-modal">
+    <div class="doc-header">
+      {% if logo %}<img src="{{ logo }}" alt="">{% endif %}
+      <div>
+        <h2 id="comprasModalTitulo"></h2>
+        <div class="doc-codigo" id="comprasModalCodigo"></div>
+      </div>
+    </div>
+    <div id="comprasModalCuerpo"></div>
+    <div class="compras-acciones" style="margin-top:16px">
+      <button type="button" class="btn compras-modal-imprimir" onclick="window.print()">🖨️ Imprimir</button>
+      <button type="button" class="btn gris compras-modal-cerrar" onclick="document.getElementById('comprasModalBg').classList.remove('open')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ REPORTES ============ -->
+<div id="sec-reportes" class="compras-seccion tarjeta">
+  <h2 style="margin-top:0">📊 Reportes</h2>
+  <h3>Inventario a una fecha</h3>
+  <div class="filtros"><div><label>Fecha</label><input type="date" id="repFecha"></div>
+    <div style="align-self:end"><button type="button" class="btn" onclick="cargarReporteInventario()">Consultar</button></div></div>
+  <table><thead><tr><th>Item</th><th>SKU/Código</th><th>Stock (unidades)</th></tr></thead>
+    <tbody id="repInvCuerpo"><tr><td colspan="3" class="compras-vacio">Elige una fecha.</td></tr></tbody></table>
+  <h3 style="margin-top:26px">Seguimiento de movimientos</h3>
+  <div class="filtros"><div><label>Desde</label><input type="date" id="repDesde"></div>
+    <div><label>Hasta</label><input type="date" id="repHasta"></div>
+    <div style="align-self:end"><button type="button" class="btn" onclick="cargarReporteMovimientos()">Consultar</button></div></div>
+  <table><thead><tr><th>Fecha</th><th>Tipo</th><th>Ítem</th><th>Cantidad</th><th>Persona</th></tr></thead>
+    <tbody id="repMovCuerpo"><tr><td colspan="5" class="compras-vacio">Elige un rango.</td></tr></tbody></table>
+</div>
+
+<script>
+(function() {
+  var CATALOGO = [];
+  var INV_FILAS = [], INV_FILTRO_CAT = '';
+
+  function api(url, opts) {
+    return fetch(url, opts || {}).then(function(r) {
+      if (!r.ok) return r.json().then(function(e) { throw new Error(e.detail || r.statusText); });
+      return r.json();
+    });
+  }
+  function post(url, datos) { return api(url, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(datos || {})}); }
+  function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+  function num(v) { return Number(v || 0).toLocaleString('es-CO', {maximumFractionDigits: 2}); }
+  function hoyISO() { return new Date().toISOString().slice(0, 10); }
+  function badgeEstado(e) {
+    var mapa = {pendiente: 'pendiente', aprobado: 'aprobada', entregada: 'aprobada', rechazado: 'rechazada', rechazada: 'rechazada'};
+    var texto = {pendiente: 'Pendiente', aprobado: 'Aprobado', entregada: 'Entregada', rechazado: 'Rechazado', rechazada: 'Rechazada'};
+    return '<span class="badge ' + (mapa[e] || '') + '">' + (texto[e] || e) + '</span>';
+  }
+
+  function switchTab(tab) {
+    document.querySelectorAll('.compras-seccion').forEach(function(s) { s.classList.remove('activa'); });
+    var sec = document.getElementById('sec-' + tab); if (!sec) return; sec.classList.add('activa');
+    document.querySelectorAll('.compras-tab').forEach(function(a) { a.classList.toggle('activo', a.dataset.tab === tab); });
+    if (tab === 'inventario') cargarInventario();
+    if (tab === 'mias') cargarMias();
+    if (tab === 'aprobar-ingresos') cargarIngresosPendientes();
+    if (tab === 'aprobar-solicitudes') cargarSolicitudesPendientes();
+  }
+  document.querySelectorAll('.compras-tab').forEach(function(a) { a.addEventListener('click', function(e) { e.preventDefault(); switchTab(a.dataset.tab); }); });
+  window.addEventListener('DOMContentLoaded', function() {
+    var params = new URLSearchParams(location.search);
+    switchTab(params.get('panel') || 'inventario');
+  });
+
+  // ---------------- catálogo / inventario ----------------
+  function cargarCatalogo() {
+    return api('/compras/api/catalogo').then(function(d) {
+      CATALOGO = d;
+      var cats = Array.from(new Set(d.map(function(it) { return it.categoria; }))).sort();
+      document.getElementById('invCategorias').innerHTML =
+        '<button type="button" class="activo" data-cat="" onclick="filtrarCategoria(this, \'\')">Todas</button>' +
+        cats.map(function(c) { return '<button type="button" data-cat="' + esc(c) + '" onclick="filtrarCategoria(this, \'' + esc(c) + '\')">' + esc(c) + '</button>'; }).join('');
+    });
+  }
+  window.filtrarCategoria = function(btn, cat) {
+    INV_FILTRO_CAT = cat;
+    document.querySelectorAll('#invCategorias button').forEach(function(b) { b.classList.toggle('activo', b === btn); });
+    renderInventario();
+  };
+  window.filtrarInventario = function() { renderInventario(); };
+  function opcionesUnidad(sel, unidadConteo) {
+    var opts = unidadConteo === 'PACK' ? ['PACK', 'UND'] : [unidadConteo];
+    sel.innerHTML = opts.map(function(u) { return '<option value="' + u + '">' + u + '</option>'; }).join('');
+  }
+
+  document.getElementById('invFecha').value = hoyISO();
+  function cargarInventario() {
+    var fecha = document.getElementById('invFecha').value || hoyISO();
+    api('/compras/api/stock?fecha=' + fecha).then(function(filas) {
+      INV_FILAS = filas;
+      renderInventario();
+    });
+  }
+  function renderInventario() {
+    var texto = (document.getElementById('invBuscar').value || '').toLowerCase().trim();
+    var filas = INV_FILAS.filter(function(f) {
+      if (INV_FILTRO_CAT && f.categoria !== INV_FILTRO_CAT) return false;
+      if (!texto) return true;
+      return (f.nombre || '').toLowerCase().indexOf(texto) !== -1 || (f.sku || '').toLowerCase().indexOf(texto) !== -1;
+    });
+    var cuerpo = document.getElementById('invCuerpo');
+    cuerpo.innerHTML = filas.map(function(f) {
+      return '<tr><td>' + esc(f.nombre) + '</td><td>' + esc(f.sku || '—') + '</td><td>' + esc(f.categoria) + '</td><td>' +
+        esc(f.unidadConteo) + '</td><td>' + num(f.stockUnidades) + '</td></tr>';
+    }).join('') || '<tr><td colspan="5" class="compras-vacio">Sin items.</td></tr>';
+  }
+
+  // ---------------- solicitar ----------------
+  function agregarLineaSolicitud() {
+    var cont = document.getElementById('solLineas');
+    var fila = document.createElement('div');
+    fila.className = 'compras-linea';
+    var opcionesItems = CATALOGO.map(function(it) { return '<option value="' + it.id + '">' + esc(it.nombre) + (it.sku ? ' (' + esc(it.sku) + ')' : '') + '</option>'; }).join('');
+    fila.innerHTML =
+      '<div><label>Ítem</label><select class="sl-item">' + opcionesItems + '</select></div>' +
+      '<div><label>Cantidad</label><input type="number" min="0" step="any" class="sl-cantidad"></div>' +
+      '<div><label>Unidad</label><select class="sl-unidad"></select></div>' +
+      '<div><button type="button" class="btn gris mini" onclick="this.closest(\'.compras-linea\').remove()">✕</button></div>';
+    cont.appendChild(fila);
+    var selItem = fila.querySelector('.sl-item'), selUnidad = fila.querySelector('.sl-unidad');
+    function sync() {
+      var it = CATALOGO.find(function(x) { return String(x.id) === selItem.value; });
+      if (it) opcionesUnidad(selUnidad, it.unidadConteo);
+    }
+    selItem.addEventListener('change', sync);
+    sync();
+  }
+  window.agregarLineaSolicitud = agregarLineaSolicitud;
+
+  window.enviarSolicitud = function() {
+    var lineas = Array.from(document.querySelectorAll('#solLineas .compras-linea')).map(function(fila) {
+      return {itemId: parseInt(fila.querySelector('.sl-item').value), cantidad: parseFloat(fila.querySelector('.sl-cantidad').value || 0),
+             unidadUsada: fila.querySelector('.sl-unidad').value};
+    }).filter(function(l) { return l.cantidad > 0; });
+    var msg = document.getElementById('solMsg');
+    if (!lineas.length) { msg.innerHTML = '<div class="aviso error">Agrega al menos un ítem con cantidad.</div>'; return; }
+    post('/compras/api/solicitudes', {lineas: lineas, notas: document.getElementById('solNotas').value})
+      .then(function() {
+        msg.innerHTML = '<div class="aviso ok">Solicitud enviada.</div>';
+        document.getElementById('solLineas').innerHTML = ''; document.getElementById('solNotas').value = '';
+        agregarLineaSolicitud();
+      })
+      .catch(function(e) { msg.innerHTML = '<div class="aviso error">' + esc(e.message) + '</div>'; });
+  };
+
+  // ---------------- mis solicitudes ----------------
+  function cargarMias() {
+    api('/compras/api/solicitudes/mias').then(function(sols) {
+      var cuerpo = document.getElementById('miasCuerpo');
+      cuerpo.innerHTML = sols.map(function(s) {
+        var items = s.lineas.map(function(l) { return esc(l.item) + ' (' + num(l.cantidadSolicitada) + ' ' + esc(l.unidadUsada) + ')'; }).join(', ');
+        return '<tr><td>' + s.fecha + '</td><td>' + items + '</td><td>' + badgeEstado(s.estado) +
+          (s.estado === 'rechazada' && s.motivoRechazo ? '<br><small>' + esc(s.motivoRechazo) + '</small>' : '') +
+          '</td><td>' + esc(s.notas) + '</td></tr>';
+      }).join('') || '<tr><td colspan="4" class="compras-vacio">Aún no has hecho solicitudes.</td></tr>';
+    });
+  }
+
+  // ---------------- registrar ingreso ----------------
+  document.getElementById('ingFecha').value = hoyISO();
+  document.getElementById('ingItem').addEventListener('change', function() {
+    var it = CATALOGO.find(function(x) { return String(x.id) === this.value; }.bind(this));
+    if (it) opcionesUnidad(document.getElementById('ingUnidad'), it.unidadConteo);
+  });
+  window.registrarIngreso = function() {
+    var msg = document.getElementById('ingMsg');
+    var payload = {itemId: parseInt(document.getElementById('ingItem').value), cantidad: parseFloat(document.getElementById('ingCantidad').value || 0),
+                   unidadUsada: document.getElementById('ingUnidad').value, fecha: document.getElementById('ingFecha').value,
+                   notas: document.getElementById('ingNotas').value};
+    if (!(payload.cantidad > 0)) { msg.innerHTML = '<div class="aviso error">Ingresa una cantidad válida.</div>'; return; }
+    post('/compras/api/ingresos', payload)
+      .then(function() {
+        msg.innerHTML = '<div class="aviso ok">Ingreso registrado, queda pendiente de aprobación.</div>';
+        document.getElementById('ingCantidad').value = ''; document.getElementById('ingNotas').value = '';
+      })
+      .catch(function(e) { msg.innerHTML = '<div class="aviso error">' + esc(e.message) + '</div>'; });
+  };
+
+  var USUARIO_ACTUAL = {{ user.nombre_completo|tojson }};
+  var INGRESOS_PEND = {}, SOLICITUDES_PEND = {};
+
+  function abrirModal(titulo, filasHtml, codigo) {
+    document.getElementById('comprasModalTitulo').textContent = titulo;
+    document.getElementById('comprasModalCodigo').textContent = codigo || '';
+    document.getElementById('comprasModalCuerpo').innerHTML = filasHtml;
+    document.getElementById('comprasModalBg').classList.add('open');
+  }
+  function filaModal(etiqueta, valor) {
+    return '<div class="compras-modal-fila"><b>' + esc(etiqueta) + '</b><span>' + valor + '</span></div>';
+  }
+
+  // ---------------- aprobar ingresos ----------------
+  function cargarIngresosPendientes() {
+    api('/compras/api/ingresos/pendientes').then(function(filas) {
+      INGRESOS_PEND = {};
+      filas.forEach(function(i) { INGRESOS_PEND[i.id] = i; });
+      var cuerpo = document.getElementById('aiCuerpo');
+      cuerpo.innerHTML = filas.map(function(i) {
+        return '<tr><td>' + i.fecha + '</td><td>' + esc(i.item) + '</td><td>' + num(i.cantidadIngresada) + ' ' + esc(i.unidadUsada) +
+          ' (' + num(i.cantidadUnidades) + ' unidades)</td><td>' + esc(i.registradoPor) + '</td><td>' + esc(i.notas) + '</td>' +
+          '<td><button type="button" class="compras-ojo" title="Ver resumen" onclick="verIngreso(' + i.id + ')">👁️</button> ' +
+          '<button type="button" class="btn verde mini" onclick="aprobarIngreso(' + i.id + ')">Aprobar</button> ' +
+          '<button type="button" class="btn rojo mini" onclick="rechazarIngreso(' + i.id + ')">Rechazar</button></td></tr>';
+      }).join('') || '<tr><td colspan="6" class="compras-vacio">No hay ingresos pendientes.</td></tr>';
+    });
+  }
+  window.aprobarIngreso = function(id) { post('/compras/api/ingresos/' + id + '/aprobar').then(cargarIngresosPendientes); };
+  window.rechazarIngreso = function(id) {
+    var motivo = prompt('Motivo del rechazo:'); if (motivo === null) return;
+    post('/compras/api/ingresos/' + id + '/rechazar', {motivo: motivo}).then(cargarIngresosPendientes);
+  };
+  window.verIngreso = function(id) {
+    var i = INGRESOS_PEND[id]; if (!i) return;
+    var html = filaModal('Consecutivo', esc(i.consecutivo)) +
+      filaModal('Ítem', esc(i.item)) +
+      filaModal('Cantidad', num(i.cantidadIngresada) + ' ' + esc(i.unidadUsada) + ' (' + num(i.cantidadUnidades) + ' unidades)') +
+      filaModal('Fecha', i.fecha) +
+      filaModal('Registra el ingreso', esc(i.registradoPor)) +
+      filaModal('Notas', esc(i.notas) || '—') +
+      filaModal('Estado', 'Pendiente de aprobación') +
+      filaModal('Aprueba', esc(USUARIO_ACTUAL) + ' <small style="color:var(--gris)">(al confirmar)</small>');
+    abrirModal('Ingreso de Item', html, 'Código: F-COMP-01 · Versión: 01');
+  };
+
+  // ---------------- aprobar/entregar solicitudes ----------------
+  function cargarSolicitudesPendientes() {
+    api('/compras/api/solicitudes/pendientes').then(function(sols) {
+      SOLICITUDES_PEND = {};
+      sols.forEach(function(s) { SOLICITUDES_PEND[s.id] = s; });
+      var cuerpo = document.getElementById('asCuerpo');
+      cuerpo.innerHTML = sols.map(function(s) {
+        var items = s.lineas.map(function(l) { return esc(l.item) + ' (' + num(l.cantidadSolicitada) + ' ' + esc(l.unidadUsada) + ')'; }).join(', ');
+        return '<tr><td>' + s.fecha + '</td><td>' + esc(s.solicitante) + '</td><td>' + items + '</td><td>' + esc(s.notas) + '</td>' +
+          '<td><button type="button" class="compras-ojo" title="Ver resumen" onclick="verSolicitud(' + s.id + ')">👁️</button> ' +
+          '<button type="button" class="btn verde mini" onclick="entregarSolicitud(' + s.id + ')">Entregar</button> ' +
+          '<button type="button" class="btn rojo mini" onclick="rechazarSolicitud(' + s.id + ')">Rechazar</button></td></tr>';
+      }).join('') || '<tr><td colspan="5" class="compras-vacio">No hay solicitudes pendientes.</td></tr>';
+    });
+  }
+  window.entregarSolicitud = function(id) {
+    post('/compras/api/solicitudes/' + id + '/entregar').then(cargarSolicitudesPendientes)
+      .catch(function(e) { alert(e.message); });
+  };
+  window.rechazarSolicitud = function(id) {
+    var motivo = prompt('Motivo del rechazo:'); if (motivo === null) return;
+    post('/compras/api/solicitudes/' + id + '/rechazar', {motivo: motivo}).then(cargarSolicitudesPendientes);
+  };
+  window.verSolicitud = function(id) {
+    var s = SOLICITUDES_PEND[id]; if (!s) return;
+    var listaItems = '<ul class="compras-modal-lineas">' + s.lineas.map(function(l) {
+      return '<li>' + esc(l.item) + ': ' + num(l.cantidadSolicitada) + ' ' + esc(l.unidadUsada) + ' (' + num(l.cantidadUnidades) + ' unidades)</li>';
+    }).join('') + '</ul>';
+    var html = filaModal('Consecutivo', esc(s.consecutivo)) +
+      filaModal('Solicita', esc(s.solicitante)) +
+      filaModal('Fecha', s.fecha) +
+      filaModal('Ítems', listaItems) +
+      filaModal('Notas', esc(s.notas) || '—') +
+      filaModal('Estado', 'Pendiente de entrega') +
+      filaModal('Entrega', esc(USUARIO_ACTUAL) + ' <small style="color:var(--gris)">(al confirmar)</small>');
+    abrirModal('Solicitud de Items', html, 'Código: F-COMP-02 · Versión: 01');
+  };
+
+  // ---------------- reportes ----------------
+  document.getElementById('repFecha').value = hoyISO();
+  window.cargarReporteInventario = function() {
+    var fecha = document.getElementById('repFecha').value || hoyISO();
+    api('/compras/api/reportes/inventario?fecha=' + fecha).then(function(filas) {
+      document.getElementById('repInvCuerpo').innerHTML = filas.map(function(f) {
+        return '<tr><td>' + esc(f.nombre) + '</td><td>' + esc(f.sku || '—') + '</td><td>' + num(f.stockUnidades) + '</td></tr>';
+      }).join('') || '<tr><td colspan="3" class="compras-vacio">Sin items.</td></tr>';
+    });
+  };
+  window.cargarReporteMovimientos = function() {
+    var desde = document.getElementById('repDesde').value, hasta = document.getElementById('repHasta').value;
+    if (!desde || !hasta) return;
+    api('/compras/api/reportes/movimientos?desde=' + desde + '&hasta=' + hasta).then(function(filas) {
+      document.getElementById('repMovCuerpo').innerHTML = filas.map(function(m) {
+        return '<tr><td>' + m.fecha + '</td><td>' + m.tipo + '</td><td>' + esc(m.item) + '</td><td>' + num(m.cantidadUnidades) +
+          '</td><td>' + esc(m.persona) + '</td></tr>';
+      }).join('') || '<tr><td colspan="5" class="compras-vacio">Sin movimientos en ese rango.</td></tr>';
+    });
+  };
+
+  cargarCatalogo().then(function() {
+    agregarLineaSolicitud();
+    cargarInventario();
+  });
+})();
+</script>
+{% endblock %}

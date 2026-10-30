@@ -35,6 +35,8 @@ Gotchas · Quién aprueba cambios sensibles (si aplica).
 ## Páginas
 
 - [sst.md](sst.md) -- Control de inventario de EPP (Nuvia Smiles)
+- [compras.md](compras.md) -- Inventario de Items (réplica de SST), acceso exclusivo de superadmin
+  por ahora
 - [custodia.md](custodia.md) -- Cambio de custodia y Producción (Nuvia Smiles)
 - [consumo.md](consumo.md) -- Seguimiento de consumo (Nuvia Smiles, mismo acceso que Custodia)
 - [conteo.md](conteo.md) -- Conteo inventario mensual (Nuvia Smiles)

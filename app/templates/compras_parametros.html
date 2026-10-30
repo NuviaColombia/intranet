@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block titulo %}Parámetros (Compras){% endblock %}
+{% block contenido %}
+<h1>⚙️ Parámetros — Compras</h1>
+<p style="color:var(--gris);font-size:13px">Catálogo de Items. Por ahora, acceso exclusivo de superadmin.</p>
+{% if msg %}<div class="aviso {{ 'error' if msg.startswith('El archivo') else 'ok' }}">{{ msg }}</div>{% endif %}
+
+{% if resultado %}
+<div class="aviso {{ 'error' if resultado.errores else 'ok' }}">
+  Import: <b>{{ resultado.creados }}</b> creados, <b>{{ resultado.actualizados }}</b> actualizados.
+  {% if resultado.errores %}<br><b>Errores:</b><br>{% for e in resultado.errores %}• {{ e }}<br>{% endfor %}{% endif %}
+</div>
+{% endif %}
+
+<div class="tarjeta">
+  <h2>Agregar item</h2>
+  <form method="post" action="/compras/parametros/items" class="filtros">
+    <div style="flex:2"><label>Nombre</label><input name="nombre" required placeholder="Ej: Papel higiénico x12"></div>
+    <div><label>SKU/Código</label><input name="sku" placeholder="Ej: ASC-001"></div>
+    <div><label>Categoría</label>
+      <select name="categoria">
+        {% for c in categorias %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
+      </select>
+    </div>
+    <div><label>Unidad de conteo</label>
+      <select name="unidad_conteo">
+        <option value="PACK">PACK (paquete/caja)</option>
+        <option value="UND">UND (unidad suelta)</option>
+        <option value="GALON">GALON</option>
+      </select>
+    </div>
+    <div><label>Unidades por paquete</label><input name="presentacion" type="number" min="1" value="1"></div>
+    <div><button class="btn">Agregar</button></div>
+  </form>
+</div>
+
+<div class="tarjeta">
+  <h2>Cargar items desde Excel</h2>
+  <p style="color:var(--gris);font-size:13px">
+    Usa la <a href="/compras/parametros/items/plantilla">plantilla oficial</a> (columnas nombre, sku,
+    categoria, unidad_conteo, presentacion -- solo "nombre" es obligatoria). Se crean items nuevos y
+    se actualizan los que ya existen con el mismo nombre.
+  </p>
+  <form method="post" action="/compras/parametros/items/importar" enctype="multipart/form-data" class="filtros">
+    <div><input type="file" name="archivo" accept=".xlsx" required></div>
+    <div><button class="btn">Subir</button></div>
+  </form>
+</div>
+
+<div class="tarjeta" style="overflow-x:auto">
+  <h2>Catálogo de Items</h2>
+  <table>
+    <tr><th>Nombre</th><th>SKU/Código</th><th>Categoría</th><th>Unidad de conteo</th><th>Unidades por paquete</th><th>Estado</th><th></th></tr>
+    {% for it in items %}
+    <tr>
+      <td colspan="5">
+        <form class="inline filtros" method="post" action="/compras/parametros/items/{{ it.id }}">
+          <div style="flex:2"><input name="nombre" value="{{ it.nombre }}" required></div>
+          <div><input name="sku" value="{{ it.sku }}" placeholder="SKU/Código"></div>
+          <div><select name="categoria">
+            {% for c in categorias %}<option value="{{ c }}" {{ 'selected' if it.categoria == c }}>{{ c }}</option>{% endfor %}
+          </select></div>
+          <div><select name="unidad_conteo">
+            <option value="PACK" {{ 'selected' if it.unidad_conteo == 'PACK' }}>PACK</option>
+            <option value="UND" {{ 'selected' if it.unidad_conteo == 'UND' }}>UND</option>
+            <option value="GALON" {{ 'selected' if it.unidad_conteo == 'GALON' }}>GALON</option>
+          </select></div>
+          <div><input name="presentacion" type="number" min="1" value="{{ it.presentacion }}"></div>
+          <div><button class="btn mini">Guardar</button></div>
+        </form>
+      </td>
+      <td>{{ 'Activo' if it.activo else 'Inactivo' }}</td>
+      <td><form class="inline" method="post" action="/compras/parametros/items/{{ it.id }}/toggle">
+        <button class="btn gris mini">{{ 'Desactivar' if it.activo else 'Activar' }}</button></form></td>
+    </tr>
+    {% else %}
+    <tr><td colspan="7" style="text-align:center;color:var(--gris)">Todavía no hay items en el catálogo.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+{% endblock %}
