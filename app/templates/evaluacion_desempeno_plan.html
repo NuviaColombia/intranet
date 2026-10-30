@@ -1,0 +1,229 @@
+{% extends "base.html" %}
+{% block titulo %}Plan de mejora{% endblock %}
+{% block contenido %}
+<h1>Plan de mejora: {{ lider.nombre_completo }}</h1>
+<p style="color:var(--gris);font-size:13px;margin-top:-8px">
+  Ciclo {{ ciclo.etiqueta }}{% if not es_actual %} — <b>histórico, de solo lectura</b>{% endif %}
+  {% if ciclos_con_plan|length > 1 %}
+  · Ver otro ciclo:
+  {% for c in ciclos_con_plan %}
+  <a href="/evaluacion-desempeno/plan/{{ lider.id }}?ciclo_id={{ c.id }}" {% if c.id == ciclo.id %}style="font-weight:700"{% endif %}>{{ c.etiqueta }}</a>{{ ', ' if not loop.last }}
+  {% endfor %}
+  {% endif %}
+</p>
+{% if msg %}<div class="aviso ok">{{ msg }}</div>{% endif %}
+{% if error %}<div class="aviso error">{{ error }}</div>{% endif %}
+<p><a href="/evaluacion-desempeno">← Volver</a></p>
+
+{% set notas = {} %}
+{% if plan %}{% for n in plan.notas_competencias %}{% set _ = notas.update({n.indice: n}) %}{% endfor %}{% endif %}
+
+<div class="tarjeta">
+  <h2>1. Información general del líder</h2>
+  <table>
+    <tr><td style="color:var(--gris);width:220px">Nombre del líder</td><td>{{ lider.nombre_completo }}</td></tr>
+    <tr><td style="color:var(--gris)">Cargo / Rol</td><td>{{ lider.cargo }}</td></tr>
+    <tr><td style="color:var(--gris)">Área / Departamento</td><td>{{ lider.area }}</td></tr>
+    <tr><td style="color:var(--gris)">Jefe inmediato</td><td>{{ lider.aprobador1.nombre_completo if lider.aprobador1 else '—' }}{% if lider.aprobador2 %} / {{ lider.aprobador2.nombre_completo }}{% endif %}</td></tr>
+    <tr><td style="color:var(--gris)">N° de evaluadores</td><td>{{ resultado_360.n_evaluadores }}</td></tr>
+    <tr><td style="color:var(--gris)">Período del plan</td><td>{{ plan.periodo_plan if plan else ciclo.etiqueta }}</td></tr>
+    <tr><td style="color:var(--gris)">Fecha inicio plan</td><td>{{ plan.fecha_inicio_plan if plan and plan.fecha_inicio_plan else '—' }}</td></tr>
+  </table>
+  {% if plan and puede_editar %}
+  <details style="margin-top:10px"><summary>Editar período / fecha de inicio</summary>
+    <form method="post" action="/evaluacion-desempeno/plan/{{ lider.id }}/fortalezas" style="margin-top:8px">
+      <input type="hidden" name="fortalezas" value="{{ plan.fortalezas }}">
+      <input type="hidden" name="areas_mejora" value="{{ plan.areas_mejora }}">
+      <label>Período del plan</label>
+      <input type="text" name="periodo_plan" value="{{ plan.periodo_plan }}">
+      <label>Fecha inicio plan</label>
+      <input type="date" name="fecha_inicio_plan" value="{{ plan.fecha_inicio_plan or '' }}">
+      <button class="btn mini" style="margin-top:6px">Guardar</button>
+    </form>
+  </details>
+  {% endif %}
+</div>
+
+<div class="tarjeta" style="overflow-x:auto">
+  <h2>2. Resultados de la Evaluación 360°</h2>
+  <p style="color:var(--gris);font-size:12px">
+    {% if resultado_360.n_evaluadores %}{{ resultado_360.n_evaluadores }} persona(s) evaluaron a este líder.
+    {% else %}Todavía nadie de su equipo lo ha evaluado en este ciclo.{% endif %}
+    Resultados siempre anónimos: nunca se muestra quién calificó qué.
+  </p>
+  {% if resultado_360.n_evaluadores %}
+  <table>
+    <tr><th>Competencia</th><th>Promedio</th><th>Nivel</th><th>Hallazgo principal</th><th>Prioridad</th></tr>
+    {% for c in resultado_360.competencias %}
+    {% set nota = notas.get(loop.index) %}
+    <tr>
+      <td>{{ c.nombre }}</td>
+      <td>{{ '%.1f'|format(c.promedio) if c.promedio is not none else '—' }}</td>
+      <td>{{ c.nivel or '—' }}</td>
+      <td>{{ nota.hallazgo if nota else '' }}</td>
+      <td>{{ nota.prioridad if nota else '' }}</td>
+    </tr>
+    {% endfor %}
+    <tr style="font-weight:700">
+      <td>PROMEDIO GENERAL</td>
+      <td>{{ '%.1f'|format(resultado_360.promedio_general) if resultado_360.promedio_general is not none else '—' }}</td>
+      <td colspan="3"></td>
+    </tr>
+  </table>
+  {% if plan and puede_editar %}
+  <details style="margin-top:10px"><summary>Editar hallazgo / prioridad por competencia</summary>
+    {% for c in resultado_360.competencias %}
+    {% set nota = notas.get(loop.index) %}
+    <form method="post" action="/evaluacion-desempeno/plan/{{ lider.id }}/competencia/{{ loop.index }}"
+          style="display:flex;gap:8px;align-items:center;margin-top:6px;flex-wrap:wrap">
+      <span style="min-width:260px;font-size:13px">{{ c.nombre }}</span>
+      <input name="hallazgo" placeholder="Hallazgo principal" value="{{ nota.hallazgo if nota else '' }}" style="flex:1;min-width:200px">
+      <select name="prioridad" style="width:120px">
+        <option value="">Prioridad</option>
+        {% for p in prioridades %}<option value="{{ p }}" {% if nota and nota.prioridad == p %}selected{% endif %}>{{ p }}</option>{% endfor %}
+      </select>
+      <button class="btn mini">Guardar</button>
+    </form>
+    {% endfor %}
+  </details>
+  {% endif %}
+  {% endif %}
+</div>
+
+{% if plan %}
+<div class="tarjeta">
+  <h2>3. Fortalezas y áreas de mejora identificadas</h2>
+  {% if puede_editar %}
+  <form method="post" action="/evaluacion-desempeno/plan/{{ lider.id }}/fortalezas">
+    <input type="hidden" name="periodo_plan" value="{{ plan.periodo_plan }}">
+    <input type="hidden" name="fecha_inicio_plan" value="{{ plan.fecha_inicio_plan or '' }}">
+    <div style="display:flex;gap:16px;flex-wrap:wrap">
+      <div style="flex:1;min-width:240px">
+        <label>Fortalezas</label>
+        <textarea name="fortalezas" rows="5">{{ plan.fortalezas }}</textarea>
+      </div>
+      <div style="flex:1;min-width:240px">
+        <label>Áreas de mejora</label>
+        <textarea name="areas_mejora" rows="5">{{ plan.areas_mejora }}</textarea>
+      </div>
+    </div>
+    <button class="btn" style="margin-top:8px">Guardar</button>
+  </form>
+  {% else %}
+  <div style="display:flex;gap:16px;flex-wrap:wrap">
+    <div style="flex:1;min-width:240px"><b>Fortalezas</b><p style="white-space:pre-wrap">{{ plan.fortalezas or '—' }}</p></div>
+    <div style="flex:1;min-width:240px"><b>Áreas de mejora</b><p style="white-space:pre-wrap">{{ plan.areas_mejora or '—' }}</p></div>
+  </div>
+  {% endif %}
+</div>
+
+<div class="tarjeta" style="overflow-x:auto">
+  <h2>4. Aspectos adicionales evaluados por el jefe inmediato</h2>
+  <p style="color:var(--gris);font-size:12px">Complemento a la Evaluación 360°, calificado directamente por el/los jefe(s) de {{ lider.nombre_completo }}.</p>
+  {% if aspectos_equipo %}
+  {% for r in aspectos_equipo %}
+  <table style="margin-bottom:10px">
+    <tr><th colspan="3">Calificado por {{ r.jefe.nombre_completo }}</th></tr>
+    <tr><th>Aspecto</th><th>Calificación</th><th>Observación</th></tr>
+    {% for clave, nombre, descripcion in aspectos %}
+    <tr>
+      <td>{{ nombre }}<br><small style="color:var(--gris)">{{ descripcion }}</small></td>
+      <td>{{ r|attr(clave) }}</td>
+      <td>{{ r.observacion or '—' if loop.first else '' }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% endfor %}
+  {% else %}
+  <p style="color:var(--gris)">Su jefe aún no ha evaluado estos aspectos en este ciclo.</p>
+  {% endif %}
+</div>
+
+<div class="tarjeta" style="overflow-x:auto">
+  <h2>5. Plan de acción para la mejora</h2>
+  <table>
+    <tr><th>N°</th><th>Área de mejora</th><th>Acción concreta</th><th>Responsable</th><th>Recursos</th><th>Inicio</th><th>Fin</th><th>Indicador de éxito</th></tr>
+    {% for a in plan.acciones %}
+    <tr>
+      <td>{{ a.numero }}</td>
+      {% if puede_editar %}
+      <td colspan="7">
+        <form method="post" action="/evaluacion-desempeno/plan/{{ lider.id }}/accion/{{ a.numero }}"
+              style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+          <input name="area_mejora" placeholder="Área de mejora" value="{{ a.area_mejora }}" style="flex:1;min-width:120px">
+          <input name="accion" placeholder="Acción concreta" value="{{ a.accion }}" style="flex:1;min-width:120px">
+          <input name="responsable" placeholder="Responsable" value="{{ a.responsable }}" style="width:120px">
+          <input name="recursos" placeholder="Recursos" value="{{ a.recursos }}" style="width:120px">
+          <input type="date" name="fecha_inicio" value="{{ a.fecha_inicio or '' }}">
+          <input type="date" name="fecha_fin" value="{{ a.fecha_fin or '' }}">
+          <input name="indicador" placeholder="Indicador de éxito" value="{{ a.indicador }}" style="flex:1;min-width:120px">
+          <button class="btn mini">Guardar</button>
+        </form>
+      </td>
+      {% else %}
+      <td>{{ a.area_mejora or '—' }}</td><td>{{ a.accion or '—' }}</td><td>{{ a.responsable or '—' }}</td>
+      <td>{{ a.recursos or '—' }}</td><td>{{ a.fecha_inicio or '—' }}</td><td>{{ a.fecha_fin or '—' }}</td>
+      <td>{{ a.indicador or '—' }}</td>
+      {% endif %}
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+
+<div class="tarjeta" style="overflow-x:auto">
+  <h2>6. Seguimiento mensual</h2>
+  <table>
+    <tr><th>Mes</th><th>Avances logrados</th><th>Dificultades / bloqueos</th><th>Ajustes al plan</th><th>% Avance</th></tr>
+    {% for s in plan.seguimientos %}
+    <tr>
+      <td>Mes {{ s.mes_indice }}</td>
+      {% if puede_editar %}
+      <td colspan="4">
+        <form method="post" action="/evaluacion-desempeno/plan/{{ lider.id }}/seguimiento/{{ s.mes_indice }}"
+              style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+          <input name="avances" placeholder="Avances logrados" value="{{ s.avances }}" style="flex:1;min-width:140px">
+          <input name="dificultades" placeholder="Dificultades / bloqueos" value="{{ s.dificultades }}" style="flex:1;min-width:140px">
+          <input name="ajustes" placeholder="Ajustes al plan" value="{{ s.ajustes }}" style="flex:1;min-width:140px">
+          <input type="number" name="porcentaje_avance" min="0" max="100" placeholder="%" value="{{ s.porcentaje_avance if s.porcentaje_avance is not none else '' }}" style="width:80px">
+          <button class="btn mini">Guardar</button>
+        </form>
+      </td>
+      {% else %}
+      <td>{{ s.avances or '—' }}</td><td>{{ s.dificultades or '—' }}</td><td>{{ s.ajustes or '—' }}</td>
+      <td>{{ (s.porcentaje_avance ~ '%') if s.porcentaje_avance is not none else '—' }}</td>
+      {% endif %}
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+
+<div class="tarjeta">
+  <h2>7. Compromisos y firmas</h2>
+  <table>
+    <tr><th>Líder evaluado</th><th>Jefe inmediato</th><th>Recursos Humanos</th></tr>
+    <tr>
+      <td>
+        {% if plan.firma_lider_en %}✔ {{ plan.firma_lider_nombre }}<br><small style="color:var(--gris)">{{ plan.firma_lider_en.strftime('%Y-%m-%d') }}</small>
+        {% elif puede_firmar_lider %}
+        <form method="post" action="/evaluacion-desempeno/plan/{{ lider.id }}/firmar"><input type="hidden" name="cual" value="lider"><button class="btn mini">Firmar</button></form>
+        {% else %}Pendiente{% endif %}
+      </td>
+      <td>
+        {% if plan.firma_jefe_en %}✔ {{ plan.firma_jefe_nombre }}<br><small style="color:var(--gris)">{{ plan.firma_jefe_en.strftime('%Y-%m-%d') }}</small>
+        {% elif puede_firmar_jefe %}
+        <form method="post" action="/evaluacion-desempeno/plan/{{ lider.id }}/firmar"><input type="hidden" name="cual" value="jefe"><button class="btn mini">Firmar</button></form>
+        {% else %}Pendiente{% endif %}
+      </td>
+      <td>
+        {% if plan.firma_rrhh_en %}✔ {{ plan.firma_rrhh_nombre }}<br><small style="color:var(--gris)">{{ plan.firma_rrhh_en.strftime('%Y-%m-%d') }}</small>
+        {% elif puede_firmar_rrhh %}
+        <form method="post" action="/evaluacion-desempeno/plan/{{ lider.id }}/firmar"><input type="hidden" name="cual" value="rrhh"><button class="btn mini">Firmar</button></form>
+        {% else %}Pendiente{% endif %}
+      </td>
+    </tr>
+  </table>
+</div>
+{% else %}
+<div class="tarjeta"><p style="color:var(--gris)">No se generó un plan de mejora en este ciclo para este líder.</p></div>
+{% endif %}
+{% endblock %}

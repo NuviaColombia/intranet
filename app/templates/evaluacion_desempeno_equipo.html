@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block titulo %}Evalúa a tu equipo{% endblock %}
+{% block contenido %}
+<h1>Evalúa a tu equipo</h1>
+<p style="color:var(--gris);font-size:13px;margin-top:-8px">
+  Ciclo {{ ciclo.etiqueta }}. Evalúa individualmente a cada persona a tu cargo, de 1 (crítico) a 5 (excelente).
+</p>
+{% if msg %}<div class="aviso ok">{{ msg }}</div>{% endif %}
+{% if error %}<div class="aviso error">{{ error }}</div>{% endif %}
+<p><a href="/evaluacion-desempeno">← Volver</a></p>
+
+{% for miembro in equipo %}
+{% set r = respuestas.get(miembro.id) %}
+<div class="tarjeta" style="max-width:640px">
+  <h2>{{ miembro.nombre_completo }} <small style="color:var(--gris);font-weight:400">({{ miembro.cargo }})</small>
+    {% if r %}<span class="badge aprobada" style="margin-left:8px">Ya evaluado</span>{% endif %}
+  </h2>
+  <form method="post" action="/evaluacion-desempeno/equipo/{{ miembro.id }}">
+    {% for clave, nombre, descripcion in aspectos %}
+    <label>{{ nombre }}</label>
+    <p style="color:var(--gris);font-size:12px;margin:-6px 0 6px">{{ descripcion }}</p>
+    <select name="{{ clave }}" required>
+      <option value="">—</option>
+      {% for v in range(1, 6) %}
+      <option value="{{ v }}" {% if r and (r|attr(clave)) == v %}selected{% endif %}>{{ v }}</option>
+      {% endfor %}
+    </select>
+    {% endfor %}
+    <label>Observación (opcional)</label>
+    <textarea name="observacion" rows="2">{{ r.observacion if r else '' }}</textarea>
+    <button class="btn" style="margin-top:10px">{{ 'Actualizar evaluación' if r else 'Guardar evaluación' }}</button>
+  </form>
+</div>
+{% endfor %}
+{% endblock %}

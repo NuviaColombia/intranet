@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block titulo %}Evaluación de desempeño{% endblock %}
+{% block contenido %}
+<h1>Evaluación de desempeño</h1>
+{% if msg %}<div class="aviso ok">{{ msg }}</div>{% endif %}
+{% if error %}<div class="aviso error">{{ error }}</div>{% endif %}
+
+{% if not ciclo %}
+<div class="tarjeta">
+  <p style="color:var(--gris)">
+    Todavía no hay un ciclo de evaluación abierto. Los ciclos se abren automáticamente en
+    <b>noviembre</b> y <b>mayo</b> de cada año.
+  </p>
+</div>
+{% else %}
+<p style="color:var(--gris);font-size:13px;margin-top:-8px">Ciclo actual: <b>{{ ciclo.etiqueta }}</b></p>
+
+<div style="display:flex;gap:16px;flex-wrap:wrap">
+  {% if jefes %}
+  <div class="tarjeta" style="max-width:380px;flex:1;min-width:260px">
+    <h2>Evalúa a tu jefe</h2>
+    <p style="color:var(--gris);font-size:13px">
+      Calificación 360°: {{ jefes|length }} jefe(s) a evaluar
+      {% if pend.jefes %}· <b>{{ pend.jefes|length }} pendiente(s)</b>{% else %}· ya respondiste a todos{% endif %}.
+    </p>
+    <a class="btn" href="/evaluacion-desempeno/jefe">Evaluar a mi jefe</a>
+  </div>
+  {% endif %}
+
+  {% if equipo %}
+  <div class="tarjeta" style="max-width:380px;flex:1;min-width:260px">
+    <h2>Evalúa a tu equipo</h2>
+    <p style="color:var(--gris);font-size:13px">
+      {{ equipo|length }} persona(s) a cargo
+      {% if pend.equipo %}· <b>{{ pend.equipo|length }} pendiente(s)</b>{% else %}· ya evaluaste a todos{% endif %}.
+    </p>
+    <a class="btn" href="/evaluacion-desempeno/equipo">Evaluar a mi equipo</a>
+  </div>
+  {% endif %}
+
+  {% if tiene_equipo %}
+  <div class="tarjeta" style="max-width:380px;flex:1;min-width:260px">
+    <h2>Mi plan de mejora</h2>
+    <p style="color:var(--gris);font-size:13px">
+      Como líder de un equipo, aquí ves los resultados de tu Evaluación 360° (anónimos) y tu plan de
+      mejora para este ciclo.
+    </p>
+    <a class="btn gris" href="/evaluacion-desempeno/plan/{{ user.id }}">Ver mi plan de mejora</a>
+  </div>
+  {% endif %}
+
+  {% if not jefes and not equipo %}
+  <div class="tarjeta" style="max-width:380px">
+    <p style="color:var(--gris)">No tienes jefes ni equipo asignado para evaluar en este ciclo.</p>
+  </div>
+  {% endif %}
+</div>
+
+{% if user.rol in ('admin', 'superadmin') %}
+<p style="margin-top:18px"><a href="/evaluacion-desempeno/resultados">📋 Ver resultados de todos los líderes (RR.HH.)</a></p>
+{% endif %}
+{% endif %}
+{% endblock %}
