@@ -68,6 +68,8 @@
   <a href="/panel">Panel</a>
   <a href="/solicitudes">Mis solicitudes</a>
   <a href="/certificaciones">Certificaciones</a>
+  {% set ev_pend = pendientes_evaluacion(user) %}
+  <a href="/evaluacion-desempeno">📊 Evaluación de desempeño{% if ev_pend %} <span class="badge-alertas">{{ ev_pend }}</span>{% endif %}</a>
   {% if user.rol in ('aprobador', 'admin', 'superadmin') %}
     <a href="/horas-extra">Horas extra</a>
   {% endif %}

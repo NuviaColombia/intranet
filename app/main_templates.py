@@ -34,6 +34,24 @@ def _resumen_aprobaciones(user):
 templates.env.globals["resumen_aprobaciones"] = _resumen_aprobaciones
 
 
+def _pendientes_evaluacion(user):
+    if not user:
+        return None
+    from . import services_evaluacion as se
+    db = SessionLocal()
+    try:
+        ciclo = se.ciclo_actual(db)
+        if not ciclo:
+            return None
+        pend = se.pendientes(db, user, ciclo)
+        return len(pend["jefes"]) + len(pend["equipo"]) or None
+    finally:
+        db.close()
+
+
+templates.env.globals["pendientes_evaluacion"] = _pendientes_evaluacion
+
+
 def _tema_design(user) -> str:
     """Modo de Design de la persona: 'oscuro' o 'claro' (por defecto claro)."""
     if not user:

@@ -43,6 +43,8 @@ Gotchas · Quién aprueba cambios sensibles (si aplica).
 - [pagos.md](pagos.md) -- Pagos: Pagos programados → PDF, Separador de comprobantes y Accounts
   Payable (también dentro de Contabilidad)
 - [permisos.md](permisos.md) -- Permisos / Vacaciones (People, ambas empresas)
+- [evaluacion_desempeno.md](evaluacion_desempeno.md) -- Evaluación de desempeño 360°/equipo y Plan
+  de mejora (People, ambas empresas; no confundir con el "Desempeño" aparte de Design)
 - [design.md](design.md) -- Design Schedule (mapa general; el detalle de Openings sigue en
   `CLAUDE.md`, es la nota que más se ha roto y conviene dejarla donde toda sesión la lee primero)
 - [activos.md](activos.md) -- Activos: inventario de hardware de TI (Design), migrado desde un

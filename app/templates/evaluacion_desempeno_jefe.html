@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block titulo %}Evalúa a tu jefe{% endblock %}
+{% block contenido %}
+<h1>Evalúa a tu jefe</h1>
+<p style="color:var(--gris);font-size:13px;margin-top:-8px">
+  Ciclo {{ ciclo.etiqueta }}. Califica cada concepto de 1 (crítico) a 5 (excelente). Tus respuestas se
+  promedian de forma <b>anónima</b> junto con las del resto del equipo: tu jefe nunca ve quién calificó qué.
+</p>
+{% if msg %}<div class="aviso ok">{{ msg }}</div>{% endif %}
+{% if error %}<div class="aviso error">{{ error }}</div>{% endif %}
+<p><a href="/evaluacion-desempeno">← Volver</a></p>
+
+{% for jefe in jefes %}
+{% set r = respuestas.get(jefe.id) %}
+<div class="tarjeta" style="overflow-x:auto">
+  <h2>{{ jefe.nombre_completo }} <small style="color:var(--gris);font-weight:400">({{ jefe.cargo }})</small>
+    {% if r %}<span class="badge aprobada" style="margin-left:8px">Ya respondiste</span>{% endif %}
+  </h2>
+  <form method="post" action="/evaluacion-desempeno/jefe/{{ jefe.id }}">
+    <table>
+      <tr><th>Competencia</th><th style="width:170px">Calificación (1-5)</th></tr>
+      {% for i, texto in competencias %}
+      <tr>
+        <td>{{ texto }}</td>
+        <td>
+          <select name="comp_{{ i }}" required>
+            <option value="">—</option>
+            {% for v in range(1, 6) %}
+            <option value="{{ v }}" {% if r and (r|attr('comp_' ~ i)) == v %}selected{% endif %}>{{ v }}</option>
+            {% endfor %}
+          </select>
+        </td>
+      </tr>
+      {% endfor %}
+    </table>
+    <button class="btn" style="margin-top:10px">{{ 'Actualizar respuesta' if r else 'Guardar evaluación' }}</button>
+  </form>
+</div>
+{% endfor %}
+{% endblock %}
