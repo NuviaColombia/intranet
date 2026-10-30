@@ -58,13 +58,13 @@
 {% endmacro %}
 {% if user %}
 {% set sec_permitidas = secciones if secciones is defined else none %}
-{% set en_inventario = es_custodia or es_inventario or es_caja or es_caja_entrada or es_consumo or es_sst or es_conteo %}
+{% set en_inventario = es_custodia or es_inventario or es_caja or es_caja_entrada or es_consumo or es_sst or es_conteo or es_compras_mod %}
 <nav{% if en_inventario %} class="nav-inventario"{% endif %}>
   <a href="/" class="marca" title="Ir al inicio: todos los módulos">
     {% set logo = logo_empresa(user.empresa) %}
     {% if logo %}<img src="{{ logo }}" alt="{{ user.empresa }}">{% else %}🗓️ Solicitudes Nuvia{% endif %}
   </a>
-  {% if not es_portal and not es_custodia and not es_design and not es_caja and not es_consumo and not es_sst and not es_conteo and not es_activos and not es_pagos %}
+  {% if not es_portal and not es_custodia and not es_design and not es_caja and not es_consumo and not es_sst and not es_conteo and not es_activos and not es_pagos and not es_compras_mod %}
   <a href="/panel">Panel</a>
   <a href="/solicitudes">Mis solicitudes</a>
   <a href="/certificaciones">Certificaciones</a>
@@ -142,6 +142,28 @@
     <span class="nav-sep">│</span>
     <a href="/sst/parametros">⚙️ Parámetros</a>
     {% endif %}
+  </div>
+  {% endif %}
+  {% endif %}
+  {% if es_compras_mod %}
+  {% if request.url.path == '/compras/parametros' %}
+  <span class="nav-ruta"><a href="/compras">🛒 Compras</a> › <a href="/compras/parametros">Parámetros</a></span>
+  <div class="nav-sub"><a href="/compras/parametros" class="activo">⚙️ Parámetros</a></div>
+  {% else %}
+  <span class="nav-ruta"><a href="/compras">🛒 Compras</a></span>
+  <div class="nav-sub">
+    <a href="/compras" class="compras-tab activo" data-tab="inventario">📦 Inventario</a>
+    <a href="/compras" class="compras-tab" data-tab="solicitar">📝 Solicitar Item</a>
+    <a href="/compras" class="compras-tab" data-tab="mias">📋 Mis solicitudes</a>
+    <span class="nav-sep">│</span>
+    <a href="/compras" class="compras-tab" data-tab="ingreso">📥 Registrar ingreso</a>
+    <span class="nav-sep">│</span>
+    <a href="/compras" class="compras-tab" data-tab="aprobar-ingresos">✅ Aprobar ingresos</a>
+    <a href="/compras" class="compras-tab" data-tab="aprobar-solicitudes">🚚 Entregar solicitudes</a>
+    <span class="nav-sep">│</span>
+    <a href="/compras" class="compras-tab" data-tab="reportes">📊 Reportes</a>
+    <span class="nav-sep">│</span>
+    <a href="/compras/parametros">⚙️ Parámetros</a>
   </div>
   {% endif %}
   {% endif %}
